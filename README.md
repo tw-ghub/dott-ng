@@ -1,11 +1,11 @@
-# DOTT - Debugger-Based On-Target Testing
+# DOTT-NG: Debugger-Based On-Target Testing - New Generation
 
 This file provides a short overview about the scope of the Debugger-Based On Target Testing (DOTT)
 framework followed by a quick step-by-step guide to get people started. Full documentation is provided
 online at the [GitHub DOTT documentation site][6].
 
 DOTT is a framework for on-target testing of firmware for __Arm Cortex-M__ microcontrollers.
-Tests are implemented in Python and they are executed on a host PC. The host PC is connected
+Tests are implemented in Python, and they are executed on a host PC. The host PC is connected
 to the target (microcontroller) via a debugger, typically using SWD or JTAG. At this time, DOTT
 relies on [Segger J-Link][1] debug probes.
 ```
@@ -14,16 +14,19 @@ relies on [Segger J-Link][1] debug probes.
 |           | <----> J-Link Debugger <-----------------> |            |
 |   Tests   |                                            | Unmodified |
 | in Python | <----> Other Test Equipment <------------> |  Firmware  |
-|           |   USB   (e.g., RasperryPi)   I2C, SPI, ... |            |
+|           |   USB   (e.g., RaspberryPi)  I2C, SPI, ... |            |
 |-----------|                                            |------------|
 ```
 
 ## Where it's from & What it does
 
-DOTT was internally developed at [ams AG](http://www.ams.com) to simplify automated testing of firmware for
-Arm Cortex-M microcontrollers. In spring 2021 it was decided to release DOTT via GitHub to the general public.
-DOTT continues to be used and maintained by ams AG. Contributions from industry and the open-source
-community are highly encouraged.
+DOTT was originally developed internally at ams AG (later [ams-OSRAM AG](http://www.ams-osram.com)) to simplify
+automated testing of firmware for Arm Cortex-M microcontrollers. In spring 2021 it was decided to release DOTT via
+GitHub to the public.
+
+In fall 2022, the development of DOTT was discontinued and a fork called `DOTT-NG` (aka `new generation`) was created
+on [Github](https://github.com/tw-ghub/dott-ng) where development continues under the same open source (Apache 2)
+license. Contributions from industry and the open-source community are welcomed and highly encouraged.
 
 DOTT aims to enable firmware testing ...
 * ... __without modifications__ of the firmware for the sake of testing
@@ -62,7 +65,8 @@ This demonstrates how DOTT can be used to inject data into the program execution
 corner cases.
 ```python
 def test_example_Simple(self, target_load, target_reset):
-    res = dott().target.eval('example_AdditionSubcalls()')
+    dt = dott().target
+    res = dt.eval('example_AdditionSubcalls()')
     assert (63 == res)
 
     # Now tweak the sub function return values and see if example_AdditionSubcalls delivers the new expected result
@@ -78,7 +82,7 @@ def test_example_Simple(self, target_load, target_reset):
     ipa = IpA('example_GetA')
     ipb = IpB('example_GetB')
 
-    res = dott().target.eval('example_AdditionSubcalls()')
+    res = dt.eval('example_AdditionSubcalls()')
 
     ipa.delete()
     ipb.delete()
@@ -94,7 +98,7 @@ System testing examples can be found in the [System Testing Section][9] of the D
 
 __Required__
 * host OS (tested): Windows 10 (64bit), Ubuntu Linux 20.04 (64bit)
-* Python 3.7 or newer (e.g., [WinPython][2])
+* Python 3.8 or newer (e.g., [WinPython][2])
 * [Segger J-Link][1] debug probe or STM32 eval board with ST-Link converted to J-Link
 * Segger [J-Link Software Pack][3]. __Notice:__ The following version should be avoided since they have known issues
 related to SRAM download: v6.50, v6.52(a-c)
@@ -197,9 +201,9 @@ test_example_functions.py::TestExampleFunctions::test_global_data_access PASSED 
 ===================================================================== 21 passed in 10.41s =====================================================================
 ```
 
-## Contributors
+## DOTT-NG Contributors
 
-* Thomas Winkler <thomas.winkler@ams.com>, ams AG, [http://www.ams.com](http://www.ams.com)
+* Thomas Winkler <thomas.winkler@gmail.com>
 
 [1]: https://www.segger.com/products/debug-probes/j-link/
 [2]: http://winpython.sourceforge.net/
