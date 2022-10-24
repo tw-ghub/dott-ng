@@ -94,7 +94,6 @@ ASMSRC = Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/gcc/startup_stm32f07
 # Create list of object files and add object directory prefix
 OBJS  = $(ASMSRC:%.s=%.o)
 OBJS += $(subst $(DOTTDIR),$(DOTTDIR_SUBST),$(SRC:%.c=%.o))
-$(info $(OBJS))
 
 # Create list of dependency files (generated via -MD) and include them
 DEPS = $(OBJS:%.o=%.d)
