@@ -1,6 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
+#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,8 +16,6 @@
 #   limitations under the License.
 ###############################################################################
 
-# Authors:
-# - Thomas Winkler, ams AG, thomas.winkler@ams.com
 from dottmi.target_mem import TypedPtr
 from dottmi.utils import DottConvert
 from dottmi.dott import DottConf, dott
@@ -407,8 +406,11 @@ class TestExampleFunctions(object):
 
         # set the content of the global_data variable (located in RW data) to known pattern and let target continue
         bp_reset_handler.wait_complete()
-        dott().target.eval('global_data = 0xaabbaabb')
-        assert(hex(dott().target.eval('global_data')) == '0xaabbaabb')
+        if not DottConf.conf['exec_type'] == 'SRAM':
+            # In case of SRAM execution, the data section is directly loaded to its SRAM destination location. Hence,
+            # we only overwrite global data in case of FLASH based execution.
+            dott().target.eval('global_data = 0xaabbaabb')
+            assert(hex(dott().target.eval('global_data')) == '0xaabbaabb')
         dott().target.cont()
 
         # check if global data was properly initialized by the scatter loader

@@ -1,6 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
+#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,9 +15,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
-# Authors:
-# - Thomas Winkler, ams AG, thomas.winkler@ams.com
 
 import os
 
@@ -36,7 +34,7 @@ except:
 
 # set binaries used for the tests in this folder (relative to main conftest file)
 DottConf.conf['app_load_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.bin.elf'
-DottConf.conf['app_symbol_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.axf'
+DottConf.conf['app_symbol_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.elf'
 
 # re-target target_reset/load fixtures
 if postfix != '':
