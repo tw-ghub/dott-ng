@@ -28,7 +28,7 @@ from matplotlib import pyplot
 from dottmi.breakpoint import HaltPoint, InterceptPoint
 from dottmi.dott import dott
 from dottmi.pylinkdott import TargetDirect
-from dottmi.utils import DOTT_LABEL
+from dottmi.utils import DOTT_LABEL, log
 
 
 class TestCounters(object):
@@ -146,7 +146,7 @@ class TestCounters(object):
         ISPR = 0xE000E200  # interrupt set pending register
 
         # wait until the target has reached function app_main
-        hp = HaltPoint('app_main')
+        hp = HaltPoint(DOTT_LABEL('APP_MAIN'))
         dott().target.cont()
         hp.wait_complete()
         hp.delete()
@@ -175,6 +175,9 @@ class TestCounters(object):
         for i in range(4):
             live_access.mem_write_32(ISPR, [0x000040000])
             ip_tmr.wait_complete()
+
+        # Live access disconnect is recommended as otherwise target state might no be correctly reported.
+        live_access.disconnect()
 
         # halt target and check that timer count actually is 8 (interrupt was raised 4 times but our intercept point
         # does an additional increment for _timer_cnt for each interrupt and hence the timer count should be 8)

@@ -66,6 +66,10 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+// called by GCC runtime
+void _init()
+{
+}
 /* USER CODE END 0 */
 
 /**

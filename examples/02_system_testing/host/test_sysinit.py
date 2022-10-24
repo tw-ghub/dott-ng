@@ -14,7 +14,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
+from dottmi.utils import log, DottConvert
 # Authors:
 # - Thomas Winkler, ams AG, thomas.winkler@ams.com
 
@@ -54,7 +54,7 @@ class TestSystemInit(object):
         dott().target.cont()
         hp_reset.wait_complete()
 
-        # write some well known, non-zero pattern int a variable located in the BSS section
+        # write some well known, non-zero pattern into a variable located in the BSS section
         pattern = 0xaabbaabb
         dott().target.eval(f'_sample_cnt = {pattern}')
         assert (pattern == dott().target.eval('_sample_cnt')), 'expected to read back test pattern'

@@ -23,7 +23,7 @@ import os
 import pytest
 
 from dottmi.dott import DottConf, dott
-from dottmi.fixtures import target_reset_common, target_load_flash, target_load_sram, target_reset_flash
+from dottmi.fixtures import target_reset_common, target_load_flash, target_load_sram, target_reset_flash, live_access
 
 # check if the DOTT_RUN_SRAM environment variable is 'yes'; if so execute the tests with the SRAM-based binary.
 postfix = ''
@@ -38,8 +38,7 @@ except:
 
 # set binaries used for the tests in this folder (relative to main conftest file)
 DottConf.conf['app_load_elf'] = f'02_system_testing/target/build/dott_example_02{postfix}/dott_example_02{postfix}.bin.elf'
-DottConf.conf['app_symbol_elf'] = f'02_system_testing/target/build/dott_example_02{postfix}/dott_example_02{postfix}.axf'
-
+DottConf.conf['app_symbol_elf'] = f'02_system_testing/target/build/dott_example_02{postfix}/dott_example_02{postfix}.elf'
 
 def setup_cb() -> None:
     """

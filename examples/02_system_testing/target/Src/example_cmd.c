@@ -102,6 +102,8 @@ command_t commands[] = {
  */
 void app_main()
 {
+    DOTT_LABEL("APP_MAIN");
+
 	// initial, non-blocking call to I2C receive function
 	HAL_I2C_Slave_Receive_DMA(&hi2c1, _recv_buf, CMD_PKT_SZ);
 
