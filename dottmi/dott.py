@@ -74,7 +74,7 @@ class Dott(object):
     def _get_next_srv_port(self, srv_addr: str) -> int:
         """
         Find the next triplet of free ("bind-able") TCP ports on the given server IP address.
-        Ports are automatically advanced unit a free port triplet is found.
+        Ports are automatically advanced until a free port triplet is found.
 
         Args:
             srv_addr: IP address of the server.

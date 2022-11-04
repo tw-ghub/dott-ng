@@ -39,11 +39,11 @@
 #define CMD_ID_BLINK 0x11
 
 // flag which indicates that new command data is available in _data
-static bool _data_ready = false;
+static volatile bool _data_ready = false;
 // buffer holding new command data
-static uint8_t _data[128] = {0, };
+static volatile uint8_t _data[128] = {0, };
 // buffer used by the DMA controller to store incoming I2C data
-static uint8_t _recv_buf[128] = {0, };
+static volatile uint8_t _recv_buf[128] = {0, };
 
 
 /*
@@ -100,11 +100,9 @@ command_t commands[] = {
  * Application main loop which reads command packages from the I2C bus, looks
  * up the correct command handler and then calls the handler function.
  */
-void app_main()
+void __attribute__((noinline)) app_main()
 {
-    DOTT_LABEL("APP_MAIN");
-
-	// initial, non-blocking call to I2C receive function
+ 	// initial, non-blocking call to I2C receive function
 	HAL_I2C_Slave_Receive_DMA(&hi2c1, _recv_buf, CMD_PKT_SZ);
 
 	while(true) {
@@ -131,7 +129,7 @@ void app_main()
 			HAL_I2C_Slave_Receive_DMA(&hi2c1, _recv_buf, CMD_PKT_SZ);
 			_data_ready = false;
 
-			DOTT_LABEL("I2C_READ_DONE");
+			DOTT_LABEL_SAFE("I2C_READ_DONE");
 
 			if (func != NULL) {
 				func(_data + 1);

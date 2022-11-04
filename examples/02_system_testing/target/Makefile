@@ -82,7 +82,7 @@ CFLAGS += -D__weak="__attribute__((weak))"
 CFLAGS += -D__packed="__attribute__((packed))"
 
 # Flags passed to the linker
-LDFLAGS  = -nostartfiles --specs=nano.specs
+LDFLAGS  = -nostartfiles --specs=nano.specs -Wl,--discard-none
 LDFLAGS += -mcpu=cortex-m0 -mthumb -mlittle-endian
 
 # C source files to be built

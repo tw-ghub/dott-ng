@@ -34,6 +34,11 @@ class TestI2cCommunication(object):
     # \amsTestReqs RS_0220, RS_0110, RS_0400, RS_0410
     def test_RegWriteRead(self, target_load, target_reset, i2c_comm):
         bp = HaltPoint(DOTT_LABEL('I2C_READ_DONE'))
+
+        hp_app = HaltPoint('app_main', temporary=True)
+        dott().target.cont()
+        hp_app.wait_complete()
+
         dott().target.cont()
 
         i2c_comm.pi.i2c_write_device(i2c_comm.dev, [0x99, *([0x0] * 8)])
@@ -65,6 +70,10 @@ class TestI2cCommunication(object):
         a_bytes = DottConvert.uint32_to_bytes(a)
         b_bytes = DottConvert.uint32_to_bytes(b)
 
+        hp_app = HaltPoint('app_main', temporary=True)
+        dott().target.cont()
+        hp_app.wait_complete()
+
         dott().target.cont()
         i2c_comm.pi.i2c_write_device(i2c_comm.dev, [0x10, *a_bytes, *b_bytes])
 
@@ -90,6 +99,10 @@ class TestI2cCommunication(object):
         hp = HaltPoint(DOTT_LABEL('UNKNOWN_CMD'))
 
         dummy = DottConvert.uint32_to_bytes(0)
+
+        hp_app = HaltPoint('app_main', temporary=True)
+        dott().target.cont()
+        hp_app.wait_complete()
 
         dott().target.cont()
         i2c_comm.pi.i2c_write_device(i2c_comm.dev, [0xff, *dummy, *dummy])
@@ -121,6 +134,10 @@ class TestI2cCommunication(object):
         b = 12345678
         a_bytes = DottConvert.uint32_to_bytes(a)
         b_bytes = DottConvert.uint32_to_bytes(b)
+
+        hp_app = HaltPoint('app_main', temporary=True)
+        dott().target.cont()
+        hp_app.wait_complete()
 
         dott().target.cont()
         i2c_comm.pi.i2c_write_device(i2c_comm.dev, [0x10, *a_bytes, *b_bytes])

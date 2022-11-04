@@ -146,10 +146,9 @@ class TestCounters(object):
         ISPR = 0xE000E200  # interrupt set pending register
 
         # wait until the target has reached function app_main
-        hp = HaltPoint(DOTT_LABEL('APP_MAIN'))
+        hp = HaltPoint('app_main', temporary=True)
         dott().target.cont()
         hp.wait_complete()
-        hp.delete()
 
         # Custom InterceptPoint which performs an additional counter increment.
         class MyIp(InterceptPoint):
@@ -176,7 +175,7 @@ class TestCounters(object):
             live_access.mem_write_32(ISPR, [0x000040000])
             ip_tmr.wait_complete()
 
-        # Live access disconnect is recommended as otherwise target state might no be correctly reported.
+        # Live access disconnect is recommended as otherwise target state might not be correctly reported.
         live_access.disconnect()
 
         # halt target and check that timer count actually is 8 (interrupt was raised 4 times but our intercept point

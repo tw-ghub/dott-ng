@@ -53,8 +53,9 @@ def set_config_options() -> None:
         DottConf.set('jlink_serial', '000778832662')
         DottConf.set('pigpio_addr', '10.10.171.82')  # remote PiGPIO daemon on RaspberryPI (rpidott02)
 
-    elif hostname.lower() == 'n1598046':
+    elif hostname.lower() == 'thunder':
         # development machine
+        DottConf.set('pigpio_addr', 'rpidott02')  # remote PiGPIO daemon on RaspberryPI (rpidott02)
         pass
 
 #    elif hostname == 'YOUR_HOST_NAME':

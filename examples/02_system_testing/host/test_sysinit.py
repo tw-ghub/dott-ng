@@ -93,11 +93,11 @@ class TestSystemInit(object):
         dott().target.cont()
         hp_reset.wait_complete()
 
-        # write some well known, non-zero pattern int a variable located in the BSS section
+        # write zero pattern into a variable located in the data section
         dott().target.eval('_test_data = 0x0')
         assert (0x0 == dott().target.eval('_test_data')), 'expected to read back 0x0'
 
-        # continue and wait until main has been reached; the variable in bss shall now be zero
+        # continue and wait until main has been reached; the variable in data section now be non-zero
         dott().target.cont()
         hp_main.wait_complete()
         assert (0xdeadbeef == dott().target.eval('_test_data')), 'expected to read back 0xdeadbeef'

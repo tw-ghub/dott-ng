@@ -32,9 +32,9 @@
 #include "testhelpers.h"
 
 // variable in BSS section (zero initialized; checked from host-side test)
-static volatile uint32_t _sample_cnt = 0;
+volatile uint32_t _sample_cnt = 0;
 // variable in data section (initialized by loader; checked from host-side test)
-static volatile uint32_t _test_data = 0xdeadbeef;
+volatile uint32_t _test_data = 0xdeadbeef;
 // counter variable for systick callback
 static volatile uint32_t _tick_cnt = 0;
 // counter variable for timer 7 (TIM7) interrupt
