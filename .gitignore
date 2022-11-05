@@ -1,4 +1,4 @@
-﻿**/.idea
+**/.idea
 **/.favorites.json
 **/test_results.xml
 **/.settings
@@ -12,3 +12,5 @@
 **/dott_data
 **/dist
 *.pyc
+*.bz2
+*.deb
