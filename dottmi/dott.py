@@ -497,7 +497,7 @@ class DottConf:
                 on_target_mem_prestack_alloc_size = int(DottConf.conf['on_target_mem_prestack_alloc_size'])
         DottConf.conf['on_target_mem_prestack_alloc_size'] = on_target_mem_prestack_alloc_size
 
-        on_target_mem_prestack_alloc_location: str = '_main_init'
+        on_target_mem_prestack_alloc_location: str = 'Reset_Handler'
         if 'on_target_mem_prestack_alloc_location' in DottConf.conf:
             if str(DottConf.conf['on_target_mem_prestack_alloc_location']).strip() != '':
                 on_target_mem_prestack_alloc_location = str(DottConf.conf['on_target_mem_prestack_alloc_location'])
