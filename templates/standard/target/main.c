@@ -35,3 +35,9 @@ int main(void)
 	}
 	return 0;
 }
+
+// called by GCC runtime
+void _init()
+{
+}
+

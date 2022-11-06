@@ -25,13 +25,11 @@ default: targets
 clean: targets_clean
 
 targets:
-	make -C target
 	make -C examples/01_component_testing/target
 	make -C examples/02_system_testing/target
 	make -C templates/standard/target
 
 targets_clean:
-	make -C target clean
 	make -C examples/01_component_testing/target clean
 	make -C examples/02_system_testing/target clean
 	make -C templates/standard/target clean
