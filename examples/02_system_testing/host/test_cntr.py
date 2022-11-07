@@ -175,11 +175,14 @@ class TestCounters(object):
             live_access.mem_write_32(ISPR, [0x000040000])
             ip_tmr.wait_complete()
 
-        # Live access disconnect is recommended as otherwise target state might not be correctly reported.
-        live_access.disconnect()
-
         # halt target and check that timer count actually is 8 (interrupt was raised 4 times but our intercept point
         # does an additional increment for _timer_cnt for each interrupt and hence the timer count should be 8)
-        dott().target.halt()
+        try:
+            # Note: A culprit currently with live access is that halting the target fails on first attempt.
+            dott().target.state_change_wait_secs = .5
+            dott().target.halt()
+        except:
+            dott().target.halt()
+
         timer_cnt = dott().target.eval('_timer_cnt')
         assert(8 == timer_cnt), 'Expected timer count to be 8'
