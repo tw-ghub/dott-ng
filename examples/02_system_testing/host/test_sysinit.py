@@ -93,12 +93,18 @@ class TestSystemInit(object):
         dott().target.cont()
         hp_reset.wait_complete()
 
-        # write zero pattern into a variable located in the data section
-        dott().target.eval('_test_data = 0x0')
-        assert (0x0 == dott().target.eval('_test_data')), 'expected to read back 0x0'
+        if DottConf.conf['exec_type'] != 'SRAM':
+            # write zero pattern into a variable located in the data section
+            dott().target.eval('_test_data = 0x0')
+            assert (0x0 == dott().target.eval('_test_data')), 'expected to read back 0x0'
 
-        # continue and wait until main has been reached; the variable in data section now be non-zero
-        dott().target.cont()
-        hp_main.wait_complete()
-        assert (0xdeadbeef == dott().target.eval('_test_data')), 'expected to read back 0xdeadbeef'
+            # continue and wait until main has been reached; the variable in data section now be non-zero
+            dott().target.cont()
+            hp_main.wait_complete()
+            assert (0xdeadbeef == dott().target.eval('_test_data')), 'expected to read back 0xdeadbeef'
 
+        else:
+            # if running from SRAM, the correct data has already been loaded into the data section by the debug probe
+            dott().target.cont()
+            hp_main.wait_complete()
+            assert (0xdeadbeef == dott().target.eval('_test_data')), 'expected to read back 0xdeadbeef'
