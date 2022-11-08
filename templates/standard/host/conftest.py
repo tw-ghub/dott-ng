@@ -34,16 +34,9 @@ def set_config_options():
     # machine-specific settings (selected based on hostname)
     hostname = socket.gethostname()
 
-    if hostname.lower() == 'd1380050c':
-        # running on JENKINS slave
-        DottConf.set('gdb_server_addr', '10.10.171.84')  # remote JLINK GDB Server (rpidott01)
-        DottConf.set('jlink_server_addr', '10.10.171.84')  # remote JLINK connected to RaspberryPI (rpidott01)
-        DottConf.set('pigpio_addr', '10.10.171.84')  # remote PiGPIO daemon on RaspberryPI (rpidott01)
-
-    elif hostname.lower() == 'hbrd01':
-        # running on Ubuntu Linux 20.04 Jenkins slave
+    if hostname.lower() == 'dott':
+        # running on Ubuntu Linux 22.04 Jenkins slave
         DottConf.set('jlink_serial', '000778832662')
-        DottConf.set('pigpio_addr', '10.10.171.82')  # remote PiGPIO daemon on RaspberryPI (rpidott02)
 
     elif hostname.lower() == 'thunder':
         # development machine
