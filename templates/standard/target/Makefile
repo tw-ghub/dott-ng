@@ -22,6 +22,9 @@
 # Directory where the Makefile is located
 MAKEFILEDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
+# Remove trailing slash, if any.
+MAKEFILEDIR := $(patsubst %/,%,$(MAKEFILEDIR))
+
 # OS detection; host OS is stored in the HOSTOS variable as Windows_NT or Linux.
 ifeq ($(OS),Windows_NT)
   HOSTOS := $(OS)
@@ -130,7 +133,7 @@ clean:
 	@rm -rf $(OUTDIR_BASE)
 
 # Generic target to link all objects into final ELF binary and create final firmware image
-dott_%: $(DOTTLIB)
+dott_%:
 	$(eval MAPFILE = $(OUTDIR)/$@.map)
 	$(eval BINFILE = $(OUTDIR)/$@.bin)
 	$(eval ELFFILE = $(OUTDIR)/$@.elf)
