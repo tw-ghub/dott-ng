@@ -45,7 +45,7 @@ def set_config_options() -> None:
     if hostname.lower() == 'dott':
         # running on JENKINS node
         DottConf.set('pigpio_addr', 'rpidott02')  # PiGPIO daemon on RaspberryPI (rpidott02)
-        DottConf.set('jlink_serial', '000778832662')
+        DottConf.set('jlink_serial', '51014146')
 
     elif hostname.lower() == 'thunder':
         # development machine

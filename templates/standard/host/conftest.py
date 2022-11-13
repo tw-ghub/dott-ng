@@ -36,7 +36,7 @@ def set_config_options():
 
     if hostname.lower() == 'dott':
         # running on Ubuntu Linux 22.04 Jenkins slave
-        DottConf.set('jlink_serial', '000778832662')
+        DottConf.set('jlink_serial', '51014146')
 
     elif hostname.lower() == 'thunder':
         # development machine
