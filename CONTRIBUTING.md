@@ -1,7 +1,7 @@
 Contributing
 ============
 
-We appreciate your contributions! Because DOTT is an open source project, we want to keep it as 
+We appreciate your contributions! Because DOTT is an open source project, we want to keep it as
 easy as possible to contribute changes. However, we need contributors to follow a few guidelines.
 
 ## Coding style
@@ -17,8 +17,8 @@ Other formatting requirements:
 ## Licensing
 
 By creating a pull request on GitHub, you agree to license your contributions under the same
-license as the original code. This is commonly referred to as "inbound=outbound". This enables
-contributions to happen in a quick and effortless way and encourages collaboration. 
+license as the original code. This is commonly referred to as "inbound=outbound". This enables
+contributions to happen in a quick and effortless way and encourages collaboration.
 
 Since DOTT is released under Apache License Version 2.0, the same license is expected for all
 contributions.
