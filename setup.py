@@ -354,7 +354,7 @@ shared_author = "Thomas Winkler"
 shared_url = "https://github.com/twinkler-ams-osram/dott"
 
 shared_install_requires = [
-                       "ams-dott-runtime==1.1.0",
+                       "dott-ng-runtime==1.1.0",
                        "pygdbmi==0.10.0.1",
                        "pylink-square==0.11.1",
                        "pytest",
@@ -371,7 +371,7 @@ def setup_dott_runtime():
         cmdclass={
             'bdist_wheel': CustomInstallCommand,
         },
-        name="ams-dott-runtime",
+        name="dott-ng-runtime",
         version=build_version,
         author=shared_author,
         author_email=shared_author_email,
@@ -395,7 +395,7 @@ def setup_dott_runtime_linux_amd64():
         cmdclass={
             'bdist_wheel': CustomInstallCommandLinuxAmd64,
         },
-        name="ams-dott-runtime",
+        name="dott-ng-runtime",
         version=build_version,
         author=shared_author,
         author_email=shared_author_email,
@@ -417,7 +417,7 @@ def setup_dott():
     setuptools.setup(
         cmdclass={
         },
-        name="ams-dott",
+        name="dott-ng",
         version=build_version,
         author=shared_author,
         author_email=shared_author_email,

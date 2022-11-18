@@ -1,4 +1,4 @@
-# DOTT-NG: Debugger-Based On-Target Testing - New Generation
+# DOTT.NG: Debugger-Based On-Target Testing - New Generation
 
 This file provides a short overview about the scope of the Debugger-Based On Target Testing (DOTT)
 framework followed by a quick step-by-step guide to get people started. Full documentation is provided
@@ -130,14 +130,14 @@ $ dott_venv\Scripts\activate.bat
 
 * DOTT can be installed using pip from the Python package index (PyPi) using pip:
 ```shell script
-$ pip install ams-dott
+$ pip install dott-ng
 ```
 
-* This installs all the required dependencies including the *ams-dott-runtime* package. The *ams-dott-runtime*
+* This installs all the required dependencies including the *dott-ng-runtime* package. The *dott-ng-runtime*
 contains binary dependencies required by DOTT. These are the GNU debug (GDB) client for Arm Cortex-M
 processors as distributed by Arm in the [GNU Arm Embedded Toolchain][4]. Since the Arm's GNU Arm Embedded Toolchain
 does not yet come with Python 3.x support for GDB-internal scripting also the required Python 2.7 dependencies are
-included in the ams-dott-runtime (Windows only). Note that only a minor fraction of DOTT uses the 2.7 environment
+included in the dott-ng-runtime (Windows only). Note that only a minor fraction of DOTT uses the 2.7 environment
 while the majority (including all tests you write) reside in the 3.x environment and interfaces GDB via its machine
 interface (MI). The 2.7 dependency will vanish as soon as Arm moves the GNU Arm Embedded Toolchain to Python 3.x.
 

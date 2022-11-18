@@ -1,9 +1,9 @@
-# When you are using DOTT, it is recommended to install the 'ams-dott' package via pip which then pulls in all
+# When you are using DOTT, it is recommended to install the 'dott-ng' package via pip which then pulls in all
 # required dependencies.
 #
 # The following list of requirements is more intended to get you stared (most probably in a venv) when you plan to
 # work on DOTT itself (i.e., add new features, fix bugs, ...)
-ams-dott-runtime==1.1
+dott-ng-runtime==1.1
 pygdbmi==0.10.0.1
 pylink-square
 pytest
