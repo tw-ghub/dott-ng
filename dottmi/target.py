@@ -83,7 +83,12 @@ class Target(NotifySubscriber):
         self._gdb_srv_quirks: GdbServerQuirks = None
 
         if auto_connect:
-            self.gdb_client_connect()
+            try:
+                self.gdb_client_connect()
+            except Exception as ex:
+                self._bp_handler.stop()
+                raise ex
+
 
     def gdb_client_connect(self) -> None:
         """
@@ -155,7 +160,7 @@ class Target(NotifySubscriber):
         """
         if self._gdb_client is not None:
             self.exec_noblock('-gdb-exit')
-            self._gdb_client.gdb_mi.shutdown()
+            self._gdb_client.disconnect()
             self._bp_handler.stop()
             self._gdb_client = None
             self._gdb_client_is_connected = False

@@ -152,17 +152,19 @@ class Dott(object):
 
         srv_addr = DottConf.conf['gdb_server_addr']
 
+        gdb_server = self.create_gdb_server(dev_name, jlink_serial, srv_addr=srv_addr)
+
+        # start GDB client
+        gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
+        gdb_client.connect()
+
         try:
-            gdb_server = self.create_gdb_server(dev_name, jlink_serial, srv_addr=srv_addr)
-
-            # start GDB Client
-            gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
-            gdb_client.connect()
-
             # create target instance and set GDB server address
             target = target.Target(gdb_server, gdb_client)
 
         except TimeoutError:
+            gdb_client.disconnect()
+            gdb_server.shutdown()
             target = None
 
         # add target to list of created targets to enable proper cleanup on shutdown
