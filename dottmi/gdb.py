@@ -111,17 +111,17 @@ class GdbServerJLink(GdbServer):
                                              creationflags=cflags)
 
         p = psutil.Process(self._srv_process.pid)
-        startup_done = False
         try:
             # query the started process until it has opened a listening socket on the expected port
+            startup_done = False
             end_time = time.time() + 8
-            while not startup_done and time.time() < end_time:
+            while startup_done is False and time.time() < end_time:
                 for c in p.connections():
                     if c.laddr.port == self.port:
-                        if self._serial_number is None:
-                            log.info(f'GDB server is now listening on port {self.port}!')
-                        else:
-                            log.info(f'GDB server (JLINK SN: {self._serial_number}) now listening on port {self.port}!')
+                        ip_ver: str = 'IPv6' if c.family == c.family.AF_INET6 else 'IPv4'
+                        jlink_ser_num: str = f' (JLINK SN: {self._serial_number}) ' if self._serial_number else ' '
+
+                        log.info(f'GDB server{jlink_ser_num}is now listening on port {self.port} ({ip_ver})!')
                         startup_done = True
 
         except psutil.AccessDenied as ex:
