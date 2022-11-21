@@ -97,8 +97,8 @@ System testing examples can be found in the [System Testing Section][9] of the D
 ## Dependencies and Requirements
 
 __Required__
-* host OS (tested): Windows 10 (64bit), Ubuntu Linux 20.04 (64bit)
-* Python 3.8 or newer (e.g., [WinPython][2])
+* host OS (tested): Windows 10 (64bit), Ubuntu Linux 22.04 (64bit)
+* Python 3.8 or newer (e.g., [[PythonBuilds][2])
 * [Segger J-Link][1] debug probe or STM32 eval board with ST-Link converted to J-Link
 * Segger [J-Link Software Pack][3]. __Notice:__ The following version should be avoided since they have known issues
 related to SRAM download: v6.50, v6.52(a-c)
@@ -206,13 +206,13 @@ test_example_functions.py::TestExampleFunctions::test_global_data_access PASSED 
 * Thomas Winkler <thomas.winkler@gmail.com>
 
 [1]: https://www.segger.com/products/debug-probes/j-link/
-[2]: http://winpython.sourceforge.net/
+[2]: https://github.com/indygreg/python-build-standalone/releases/
 [3]: https://www.segger.com/downloads/jlink/#J-LinkSoftwareAndDocumentationPack
 [4]: https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm
 [5]: https://www.st.com/en/evaluation-tools/nucleo-f072rb.html
-[6]: https://twinkler-ams-osram.github.io/dott_docu/
-[7]: https://twinkler-ams-osram.github.io/dott_docu//SetupAndTarget.html
-[8]: https://twinkler-ams-osram.github.io/dott_docu//ComponentTesting.html
-[9]: https://twinkler-ams-osram.github.io/dott_docu//SystemTesting.html
-[10]: https://github.com/twinkler-ams-osram/dott/releases
-[11]: https://twinkler-ams-osram.github.io/dott_docu//ReferencePlatform.html
+[6]: https://tw-ghub.github.io/dott-ng_docu/
+[7]: https://tw-ghub.github.io/dott-ng_docu/SetupAndTarget.html
+[8]: https://tw-ghub.github.io/dott-ng_docu/ComponentTesting.html
+[9]: https://tw-ghub.github.io/dott-ng_docu/SystemTesting.html
+[10]: https://github.com/tw-ghub/dott-ng/releases
+[11]: https://tw-ghub.github.io/dott-ng_docu/ReferencePlatform.html
