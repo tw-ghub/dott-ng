@@ -70,7 +70,7 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
 def target_load_sram() -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target SRAM.
-    This fixture has FUNCTION scope and hence is execute for each test where it is specified.
+    This fixture has FUNCTION scope and hence is executed for each test where it is specified.
     """
     target_load_common('SRAM', load_to_flash=False)
 
@@ -80,7 +80,7 @@ def target_load_sram() -> None:
 def target_load_flash(silent: bool = False) -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target FLASH. This fixture has
-    SECCION scope and hence is execute once per test session and not for every test where it is specified.
+    SESSION scope and hence is executed once per test session and not for every test where it is specified.
     """
     target_load_common('FLASH', load_to_flash=True, silent=silent)
 
@@ -90,7 +90,7 @@ def target_load_flash(silent: bool = False) -> None:
 def target_load_flash_always(silent: bool = False) -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target FLASH. This fixture has
-    FUNCTION scope and hence is execute for each test where it is specified.
+    FUNCTION scope and hence is executed for each test where it is specified.
 
     Args:
         silent: If not used as fixture but called directly the silent argument allows to control if the function prints
@@ -248,7 +248,7 @@ def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types
     if pc is not None:
         dt.eval(f'$pc = *{pc}')
 
-    # if a callback was specified give user code a chance to to early device initialization
+    # if a callback was specified give user code a chance to do early device initialization
     if setup_cb is not None:
         setup_cb()
 
