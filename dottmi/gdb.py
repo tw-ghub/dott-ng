@@ -253,8 +253,11 @@ class GdbServerQuirks(object):
             # falling back to Segger's naming as default
             log.info("Using Segger's xpsr naming")
             return GdbServerQuirks('xpsr',
-                                   'monitor clrbp',
-                                   'monitor reset')
+                                   # FIXME: Hack to get Lauterbach going.
+                                   # 'monitor clrbp',
+                                   # 'monitor reset')
+                                   'monitor B::Break.Clear',
+                                   'monitor B::System.ResetOut')
 
     def __init__(self, xpsr_name: str, monitor_clr_all_bps: str, monitor_reset: str):
         self._xpsr_name: str = xpsr_name

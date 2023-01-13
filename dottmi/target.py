@@ -101,7 +101,19 @@ class Target(NotifySubscriber):
 
         try:
             self.exec('-gdb-set mi-async on', timeout=5)
-            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+
+            try:
+                self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+            except:
+                # FIXME: Temporary 'hack' for Lauterbach
+                self.exec(f'-target-select extended-remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+                self.exec(f'monitor B::SYSTEM.RESET')
+                self.exec(f'monitor B::SYSTEM.CONFIG.DEBUGPORTTYPE SWD')
+                self.exec(f'monitor B::SYSTEM.CPU STM32F070RB')
+                self.exec(f'monitor B::SYSTEM.Up')
+                self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+                # end of hack
+
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)
         except Exception as ex:
             raise ex
@@ -276,7 +288,8 @@ class Target(NotifySubscriber):
             self.exec(f'-file-symbol-file')  # note: -file-symbol-file without arguments clears GDB's symbol table
             self.exec(f'-file-symbol-file {self._symbol_elf_file_name}')
 
-        self.cli_exec(f'monitor flash device {self._gdb_server.device_id}')
+        # FIXME: Temporary 'hack' for Lauterbach
+        # self.cli_exec(f'monitor flash device {self._gdb_server.device_id}')
 
         if enable_flash:
             self.cli_exec('monitor flash download=1')

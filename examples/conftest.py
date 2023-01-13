@@ -23,7 +23,7 @@ import socket
 import pigpio
 
 from dottmi.dott import dott
-from dottmi.fixtures import dott_auto_func_cleanup, dott_auto_connect_and_disconnect, target_reset_common
+from dottmi.fixtures import dott_auto_func_cleanup, dott_auto_connect_and_disconnect, target_reset_common, pytest_configure
 
 # set working directory to the folder which contains this conftest file
 import pytest
@@ -49,7 +49,11 @@ def set_config_options() -> None:
         # development machine
         pass
 
-#    elif hostname == 'YOUR_HOST_NAME':
+    elif hostname.lower() == 'smw001789':
+        DottConf.set('gdb_server_addr', '127.0.0.1')
+        DottConf.set('gdb_server_port', '30000')
+
+    #    elif hostname == 'YOUR_HOST_NAME':
 #        DottConf.set('gdb_server_addr', 'WWW.XXX.YYY.ZZZ')  # only needed for a remote JLINK connected to RaspberryPI
 #        DottConf.set('pigpio_addr', 'AAA.BBB.CCC.DDD')  # remote PiGPIO daemon on RaspberryPI
 
