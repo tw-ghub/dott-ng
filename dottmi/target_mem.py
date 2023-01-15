@@ -287,7 +287,7 @@ class TargetMem(object):
         holding elements of a composite type with size not being a multiple of words, this function does not guarantee
         word alignment from the second array element onwards. In other word, this function simply allocates memory
         of size = sizeof(var_type) * cnt.
-        Optionally, the allocate memory can be initialized with the provided value.
+        Optionally, the allocated memory can be initialized with the provided value.
         Optionally, a GDB convenience variable with the provided variable name is created which can be used to reference
         the allocated memory in GDB commands.
 
@@ -304,7 +304,7 @@ class TargetMem(object):
         type_sz: int = self.sizeof(var_type)
         p_var: TypedPtr = self.alloc(type_sz * cnt, var_name, align)
         if val is not None:
-            self.write(p_var, val, cnt)
+            self.write(p_var, val)
 
         # optionally create a gdb convenience variable and cast to concrete type as specified by var_type
         if var_name is not None:
