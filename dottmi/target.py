@@ -292,7 +292,18 @@ class Target(NotifySubscriber):
         # self.cli_exec(f'monitor flash device {self._gdb_server.device_id}')
 
         if enable_flash:
-            self.cli_exec('monitor flash download=1')
+            import time
+            self.cli_exec('monitor B::DO C:/Data/Work/Tools/trace32_nxp_coolfluxarm_full_20210611162852/demo/arm/flash/stm32f0xx.cmm CPU=STM32F072RB DUALPORT=0 PREPAREONLY')
+            time.sleep(2)
+            # self.cli_exec('monitor B::FLASH.STATE')
+            self.cli_exec('monitor B::FLASH.AUTO ALL')
+
+        # self.cli_exec('monitor flash download=1')
+           # self.cli_exec('monitor B::Break')
+           #  self.cli_exec('monitor B::DO ~~/demo/arm/flash/stm32f0xx.cmm CPU=STM32F072RB DUALPORT=0 PREPAREONLY')
+           #  # self.cli_exec('monitor B::FLASH.Reprogram ALL')
+           #  # self.cli_exec('monitor B::FLASH.AUTO off')
+           #  self.cli_exec('monitor B::FLASH.AUTO ALL')
 
         if load_elf_file_name is not None:
             self.exec('-target-download')

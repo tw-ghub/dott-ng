@@ -59,7 +59,7 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
                                                                 int(DottConf.get('bl_symbol_addr'))))
 
         # disable FLASH breakpoints
-        dt.cli_exec('monitor flash breakpoints=0')
+#        dt.cli_exec('monitor flash breakpoints=0')
     except Exception as ex:
         log.exception(str(ex))
         pytest.exit('Unhandled exception target download. See trace above.')
