@@ -44,7 +44,7 @@ class Monitor(abc.ABC):
         self._target.cli_exec(f'monitor {monitor_cmd}')
 
     @abc.abstractmethod
-    def set_flash_device(self, device_id: str) -> None:
+    def set_flash_device(self, device_name: str) -> None:
         pass
 
     @abc.abstractmethod
@@ -69,8 +69,8 @@ class Monitor(abc.ABC):
 
 
 class MonitorJLink(Monitor):
-    def set_flash_device(self, device_id: str) -> None:
-        self.run_cmd(f'flash device {device_id}')
+    def set_flash_device(self, device_name: str) -> None:
+        self.run_cmd(f'flash device {device_name}')
 
     def enable_flash_download(self, enable: bool) -> None:
         flag: int = 1 if enable else 0
@@ -91,17 +91,17 @@ class MonitorJLink(Monitor):
 
 
 class MonitorOpenOCD(Monitor):
-    def set_flash_device(self, device_id: str) -> None:
-        raise NotImplementedError('Setting FLASH device is not implemented for OpenOCD monitor.')
+    def set_flash_device(self, device_name: str) -> None:
+        # For OpenOCD the flash device name is ignored for now
+        pass
 
     def enable_flash_download(self, enable: bool) -> None:
         flag: str = 'enable' if enable else 'disable'
         self.run_cmd(f'gdb_flash_program {flag}')
 
     def enable_flash_breakpoints(self, enable: bool) -> None:
-        flag: str = 'soft' if enable else 'hard'
-        # Note: This is actually not just disabling breakpoints in FLASH but also in RAM.
-        self.run_cmd(f'gdb_breakpoint_override {flag}')
+        flag: str = 'enable' if enable else 'disable'
+        self.run_cmd(f'gdb_memory_map {flag}')
 
     def clear_all_breakpoints(self) -> None:
         self.run_cmd('rbp all')

@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ class TypedPtr:
     @property
     def type(self) -> str:
         """
-        This function returns the they of the variable the pointer is pointing to.
+        This function returns the type of the variable the pointer is pointing to.
 
         Returns:
             Returns the type of the variable the pointer is pointing to.
@@ -152,11 +152,6 @@ class TargetMem(object):
         self._zero_mem = zero_mem
         self.reset()
 
-    def _bytes_needed(self, n):
-        if n == 0:
-            return 1
-        return int(math.log(n, 256)) + 1
-
     def _write_raw(self, dst_addr: Union[int, str, TypedPtr], values: bytes) -> None:
         content = binascii.hexlify(struct.pack('<%dB' % len(values), *values)).decode('utf8')
         self._target.exec(f'-data-write-memory-bytes {dst_addr} "{content}"')
@@ -180,6 +175,26 @@ class TargetMem(object):
 
         return self._sz_types[target_type]
 
+    def _to_bytes(self, val: Union[int, bytes, str]) -> bytes:
+        """
+        Converts and int, bytes or str value to bytes. For an int, the minimal number of bytes needed to hold the value is used.
+        Strings are encoded as ASCII.
+        :param val: Value to be converted to bytes.
+        :return: Returns the provided value into bytes.
+        """
+        if isinstance(val, int):
+            # note: int.to_bytes raises exception if type_sz != val size
+            bytes_needed: int = 1 if val == 0 else int(math.log(val, 256)) + 1
+            bval: bytes = val.to_bytes(bytes_needed, byteorder=self._target.byte_order)
+        elif isinstance(val, bytes):
+            bval: bytes = val
+        elif isinstance(val, str):
+            bval: bytes = bytes(val, encoding='ascii')
+        else:
+            raise ValueError('Only int, bytes or str (ascii) are supported as val types')
+
+        return bval
+
     def write(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, bytes, str], cnt: int = 1) -> None:
         """
         This function writes the provided data to target memory at destination address. If cnt is other than one,
@@ -190,17 +205,8 @@ class TargetMem(object):
             val: Content to be written to the target.
             cnt: The number of times val shall be repeated when writing to the target.
         """
-        if isinstance(val, int):
-            # note: int.to_bytes raises exception if type_sz != val size
-            bval = val.to_bytes(self._bytes_needed(val), byteorder=self._target.byte_order)
-            self._write_raw(dst_addr, bval * cnt)
-        elif isinstance(val, bytes):
-            self._write_raw(dst_addr, val * cnt)
-        elif isinstance(val, str):
-            bval = bytes(val, encoding='ascii')
-            self._write_raw(dst_addr, bval * cnt)
-        else:
-            raise ValueError('Only int, bytes or str (ascii) are supported as val types')
+        bval = self._to_bytes(val)
+        self._write_raw(dst_addr, bval * cnt)
 
     def read(self, src_addr: Union[int, str, TypedPtr], num_bytes: int) -> bytes:
         """
@@ -287,7 +293,7 @@ class TargetMem(object):
         holding elements of a composite type with size not being a multiple of words, this function does not guarantee
         word alignment from the second array element onwards. In other word, this function simply allocates memory
         of size = sizeof(var_type) * cnt.
-        Optionally, the allocate memory can be initialized with the provided value.
+        Optionally, the allocated memory can be initialized with the provided value.
         Optionally, a GDB convenience variable with the provided variable name is created which can be used to reference
         the allocated memory in GDB commands.
 
@@ -304,7 +310,12 @@ class TargetMem(object):
         type_sz: int = self.sizeof(var_type)
         p_var: TypedPtr = self.alloc(type_sz * cnt, var_name, align)
         if val is not None:
-            self.write(p_var, val, cnt)
+            bval = self._to_bytes(val)
+            bval_len = len(bval)
+            bval_extended = bval * cnt
+            if len(bval_extended) > type_sz * cnt:
+                raise ValueError(f'The given value (length in bytes: {bval_len}) times {cnt} does not fit into the allocated memory ({type_sz * cnt} bytes)!')
+            self._write_raw(p_var, bval_extended)
 
         # optionally create a gdb convenience variable and cast to concrete type as specified by var_type
         if var_name is not None:

@@ -285,7 +285,8 @@ class TestExampleFunctions(object):
         assert(len(msg) - 1 == res), f'expected: {len(msg)}, is: {res}'
 
         # same as above but with direct setting of initial data
-        addr = dott().target.mem.alloc_type('char', cnt=len(msg), val=msg)
+        addr = dott().target.mem.alloc_type('char', cnt=len(msg))
+        dott().target.mem.write(addr, msg)
         res = dott().target.eval(f'example_StringLen({addr})')
         assert(len(msg) - 1 == res), f'expected: {len(msg)}, is: {res}'
 
