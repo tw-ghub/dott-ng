@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from dottmi.dottexceptions import DottException
-from dottmi.monitor import MonitorJLink, Monitor
+from dottmi.monitor import MonitorJLink, Monitor, MonitorOpenOCD
 from dottmi.target_mem import TargetMemModel
 from dottmi.utils import log, log_setup, singleton
 
@@ -116,6 +116,7 @@ class Dott(object):
         gdb_server_binary, jlink_interface, device_endianess, jlink_speed, and jlink_server_addr.
 
         Args:
+            device_name: Device name as used by debug monitor to identify corresponding flash loader algorithm.
             jlink_serial: JLINK serial number (None when only a single JLINK is connected).
             srv_addr: Server address (None for default).
             srv_port: Port the server shall listen on (-1 for default).
@@ -158,7 +159,12 @@ class Dott(object):
         gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
         gdb_client.connect()
 
-        monitor: Monitor = MonitorJLink()
+        if DottConf.get('monitor_type') == 'jlink':
+            monitor: Monitor = MonitorJLink()
+        elif DottConf.get('monitor_type') == 'openocd':
+            monitor: Monitor = MonitorOpenOCD()
+        else:
+            raise DottException(f'Unknown debug monitor type {DottConf.get("monitor_type")}.')
 
         try:
             # create target instance and set GDB server address
@@ -200,6 +206,7 @@ def dott() -> Dott:
 class DottConf:
     conf = {}
     dott_runtime = None
+    parsed = False
 
     @staticmethod
     def set(key: str, val: str) -> None:
@@ -303,7 +310,11 @@ class DottConf:
         return jlink_path, segger_lib_name, jlink_version
 
     @staticmethod
-    def parse_config():
+    def parse_config(force_reparse = False):
+        if DottConf.parsed and not force_reparse:
+            return
+        DottConf.parsed = True
+
         # setup runtime environment
         DottConf._setup_runtime()
         log.info(f'DOTT runtime:          {DottConf.get("DOTTRUNTIME")}')
@@ -402,6 +413,14 @@ class DottConf:
                 raise ValueError(f'device_endianess in {dott_ini} should be either "little" or "big".')
         log.info(f'Device endianess:      {DottConf.conf["device_endianess"]}')
 
+        if 'monitor_type' not in DottConf.conf:
+            DottConf.conf['monitor_type'] = 'jlink'
+        else:
+            DottConf.conf['monitor_type'] = DottConf.conf['monitor_type'].strip().lower()
+            if DottConf.conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
+                raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd"')
+        log.info(f'Selected monitor type: {DottConf.conf["monitor_type"].upper()}')
+
         # determine J-Link path and version
         jlink_path, jlink_lib_name, jlink_version = DottConf._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
         DottConf.conf["jlink_path"] = jlink_path
@@ -410,7 +429,7 @@ class DottConf:
         log.info(f'J-LINK local path:     {DottConf.conf["jlink_path"]}')
         log.info(f'J-LINK local version:  {DottConf.conf["jlink_version"]}')
 
-        # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore it does not make sense
+        # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
         # to print, e.g., SWD connection parameters.
         if 'jlink_interface' not in DottConf.conf:
             DottConf.conf['jlink_interface'] = 'SWD'
