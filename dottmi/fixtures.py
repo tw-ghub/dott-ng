@@ -70,7 +70,7 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
 def target_load_sram() -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target SRAM.
-    This fixture has FUNCTION scope and hence is execute for each test where it is specified.
+    This fixture has FUNCTION scope and hence is executed for each test where it is specified.
     """
     target_load_common('SRAM', load_to_flash=False)
 
