@@ -16,12 +16,17 @@
 #   limitations under the License.
 ###############################################################################
 
-import traceback
-import types
-from typing import Dict
+from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
 
 import pytest
+import traceback
+import types
+import typing
 
+if typing.TYPE_CHECKING:
+    from dottmi.target import Target
+
+from typing import Dict
 from dottmi.breakpoint import HaltPoint, InterceptPoint
 from dottmi.dott import DottConf, dott
 from dottmi.dottexceptions import DottException
@@ -31,7 +36,7 @@ from dottmi.utils import log
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt: 'Target' = None) -> None:
+def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
     if dt is None:
         log.error('Connection to target (via JLINK) was not properly established. Please check your JLINK parameters!')
@@ -112,7 +117,7 @@ def target_load_symbols_only(silent: bool = False) -> None:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def _target_mem_init_noalloc(dt: 'Target' = None) -> None:
+def _target_mem_init_noalloc(dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
 
     # print mem model override information
@@ -138,7 +143,7 @@ def _target_mem_init_noalloc(dt: 'Target' = None) -> None:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def _target_mem_init_testhook(dt: 'Target' = None) -> None:
+def _target_mem_init_testhook(dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
 
     # print mem model override information
@@ -164,7 +169,7 @@ def _target_mem_init_testhook(dt: 'Target' = None) -> None:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def _target_mem_init_prestack(mem_model_args: Dict = None, dt: 'Target' = None) -> None:
+def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
     canary_word = 0xabad1dea
     override = False
@@ -235,7 +240,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: 'Target' = None) 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types.FunctionType = None, dt: 'Target' = None) -> None:
+def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types.FunctionType = None, dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
     # reset target and clear all potentially existing breakpoints
     dt.halt()
@@ -345,3 +350,8 @@ def dott_auto_connect_and_disconnect():
 def pytest_configure(config):
     # register markers with pytest
     config.addinivalue_line("markers", "dott_mem: marker to select on-target memory allocation model")
+
+
+def pytest_collection_finish():
+    DottConf.parse_config()
+    dott()

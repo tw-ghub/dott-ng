@@ -20,10 +20,10 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 import abc
 import typing
 
-from dottmi.dottexceptions import DottException
-
 if typing.TYPE_CHECKING:
     from dottmi.target import Target
+
+from dottmi.dottexceptions import DottException
 
 
 class Monitor(abc.ABC):
