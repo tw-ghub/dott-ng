@@ -25,6 +25,9 @@ log = logging.getLogger('DOTT')
 
 
 def log_setup() -> None:
+    # suppress log debug/info from pygdbmi
+    logger = logging.getLogger('pygdbmi')
+    logger.setLevel(logging.ERROR)
     # suppress log debug/info output on a general basis
     logging.getLogger().setLevel(logging.ERROR)
     # configure DOTT log level
