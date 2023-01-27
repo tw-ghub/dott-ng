@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 from dottmi.dottexceptions import DottException
+from dottmi.monitor import MonitorJLink, Monitor
 from dottmi.target_mem import TargetMemModel
 from dottmi.utils import log, log_setup, singleton
 
@@ -109,16 +110,15 @@ class Dott(object):
             self._next_gdb_srv_port = int(DottConf.conf['gdb_server_port'])
         return start_port
 
-    def create_gdb_server(self, dev_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
+    def create_gdb_server(self, device_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
         """
         Factory method to create a new GDB server instance. The following parameters are defined via DottConfig:
         gdb_server_binary, jlink_interface, device_endianess, jlink_speed, and jlink_server_addr.
 
         Args:
-            dev_name: Device name as in JLinkDevices.xml
-            jlink_serial: JLINK serial number.
-            srv_addr: Server address.
-            launch: Whether or not to launch the GDB server process.
+            jlink_serial: JLINK serial number (None when only a single JLINK is connected).
+            srv_addr: Server address (None for default).
+            srv_port: Port the server shall listen on (-1 for default).
         Returns:
             The created GdbServer instance.
         """
@@ -137,7 +137,7 @@ class Dott(object):
         gdb_server = GdbServerJLink(DottConf.conf['gdb_server_binary'],
                                     srv_addr,
                                     srv_port,
-                                    dev_name,
+                                    device_name,
                                     DottConf.conf['jlink_interface'],
                                     DottConf.conf['device_endianess'],
                                     DottConf.conf['jlink_speed'],
@@ -146,21 +146,23 @@ class Dott(object):
 
         return gdb_server
 
-    def create_target(self, dev_name: str, jlink_serial: str = None) -> 'Target':
+    def create_target(self, device_name: str, jlink_serial: str = None) -> 'Target':
         from dottmi import target
         from dottmi.gdb import GdbClient
 
         srv_addr = DottConf.conf['gdb_server_addr']
 
-        gdb_server = self.create_gdb_server(dev_name, jlink_serial, srv_addr=srv_addr)
+        gdb_server = self.create_gdb_server(device_name, jlink_serial, srv_addr=srv_addr)
 
         # start GDB client
         gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
         gdb_client.connect()
 
+        monitor: Monitor = MonitorJLink()
+
         try:
             # create target instance and set GDB server address
-            target = target.Target(gdb_server, gdb_client)
+            target = target.Target(gdb_server, gdb_client, monitor, device_name)
 
         except TimeoutError:
             gdb_client.disconnect()

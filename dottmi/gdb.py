@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -36,14 +36,9 @@ from dottmi.utils import log
 
 
 class GdbServer(ABC):
-    def __init__(self, addr, port, device_id):
+    def __init__(self, addr, port):
         self._addr: str = addr
         self._port: int = port
-        self._device_id: str = device_id
-
-    @property
-    def device_id(self):
-        return self._device_id
 
     @property
     def addr(self):
@@ -54,7 +49,7 @@ class GdbServer(ABC):
         return self._port
 
     @abstractmethod
-    def _launch(self):
+    def _launch(self, device_name: str):
         pass
 
     @abstractmethod
@@ -63,9 +58,9 @@ class GdbServer(ABC):
 
 
 class GdbServerJLink(GdbServer):
-    def __init__(self, gdb_svr_binary: str, addr: str, port: int, device_id: str, interface: str, endian: str,
+    def __init__(self, gdb_svr_binary: str, addr: str, port: int, device_name: str, interface: str, endian: str,
                  speed: str = '15000', serial_number: str = None, jlink_addr: str = None):
-        super().__init__(addr, port, device_id)
+        super().__init__(addr, port)
         self._srv_binary: str = gdb_svr_binary
         self._srv_process = None
         self._target_interface: str = interface
@@ -79,7 +74,7 @@ class GdbServerJLink(GdbServer):
         subprocess.Popen.__del__ = GdbServerJLink._popen_del
 
         if self.addr is None:
-            self._launch()
+            self._launch(device_name)
 
     @staticmethod
     def _popen_del(instance):
@@ -88,8 +83,8 @@ class GdbServerJLink(GdbServer):
         except:
             pass
 
-    def _launch_internal(self):
-        args = [self._srv_binary, '-device', self.device_id, '-if', self._target_interface , '-endian',
+    def _launch_internal(self, device_name: str) -> None:
+        args = [self._srv_binary, '-device', device_name, '-if', self._target_interface , '-endian',
                 self._target_endian, '-vd', '-noir', '-timeout', '2000', '-singlerun', '-silent', '-speed',
                 self._speed]
         if self._jlink_addr is not None:
@@ -154,11 +149,11 @@ class GdbServerJLink(GdbServer):
             self._addr = '127.0.0.1'
             atexit.register(self.shutdown)
 
-    def _launch(self):
+    def _launch(self, device_name: str):
         start_done: bool = False
         while not start_done:
             try:
-                self._launch_internal()
+                self._launch_internal(device_name)
                 start_done = True
             except psutil.AccessDenied as ex:
                 pass
@@ -238,37 +233,3 @@ class GdbClient(object):
     @property
     def gdb_mi(self) -> GdbMi:
         return self._gdb_mi
-
-
-class GdbServerQuirks(object):
-    @staticmethod
-    def instantiate_quirks(dt: 'dottmi.target.Target') -> 'GdbServerQuirks':
-        # Segger and OpenOCD don't agree on xpsr naming (all lowercase vs. mixed case)
-        if 'xPSR' in dt.reg_get_names():
-            log.info("Using OpenOCD's xPSR naming")
-            return GdbServerQuirks('xPSR',
-                                   'monitor rbp all',
-                                   'monitor reset halt')
-        else:
-            # falling back to Segger's naming as default
-            log.info("Using Segger's xpsr naming")
-            return GdbServerQuirks('xpsr',
-                                   'monitor clrbp',
-                                   'monitor reset')
-
-    def __init__(self, xpsr_name: str, monitor_clr_all_bps: str, monitor_reset: str):
-        self._xpsr_name: str = xpsr_name
-        self._monitor_clr_all_bps: str = monitor_clr_all_bps
-        self._monitor_reset: str = monitor_reset
-
-    @property
-    def xpsr_name(self) -> str:
-        return self._xpsr_name
-
-    @property
-    def monitor_clear_all_bps(self) -> str:
-        return self._monitor_clr_all_bps
-
-    @property
-    def monitor_reset(self) -> str:
-        return self._monitor_reset

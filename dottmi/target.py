@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import logging
 import os
 import threading
 import time
-import datetime
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union
 from typing import List
@@ -28,8 +27,9 @@ from typing import List
 from dottmi.breakpointhandler import BreakpointHandler
 from dottmi.dott import DottConf
 from dottmi.dottexceptions import DottException
-from dottmi.gdb import GdbClient, GdbServer, GdbServerQuirks
+from dottmi.gdb import GdbClient, GdbServer
 from dottmi.gdb_mi import NotifySubscriber
+from dottmi.monitor import Monitor
 from dottmi.symbols import BinarySymbols
 from dottmi.target_mem import TargetMem, TargetMemNoAlloc
 from dottmi.utils import cast_str, log
@@ -39,7 +39,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, auto_connect: bool = True) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, auto_connect: bool = True) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
@@ -49,8 +49,11 @@ class Target(NotifySubscriber):
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
 
+        self._device_name: str = device_name
         self._gdb_client: GdbClient = gdb_client
         self._gdb_server: GdbServer = gdb_server
+        self._monitor: Monitor = monitor
+        self._monitor.set_target(self)
 
         # condition variable and status flag used to implement helpers
         # allowing callers to wait until target is stopped or running
@@ -80,15 +83,12 @@ class Target(NotifySubscriber):
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False
 
-        self._gdb_srv_quirks: GdbServerQuirks = None
-
         if auto_connect:
             try:
                 self.gdb_client_connect()
             except Exception as ex:
                 self._bp_handler.stop()
                 raise ex
-
 
     def gdb_client_connect(self) -> None:
         """
@@ -114,7 +114,6 @@ class Target(NotifySubscriber):
         gdb_script_file = str(PurePosixPath(gdb_script_file))
         self.cli_exec(f'source {gdb_script_file}')
 
-        self._gdb_srv_quirks = GdbServerQuirks.instantiate_quirks(self)
         self._gdb_client_is_connected = True
 
     def gdb_client_disconnect(self) -> None:
@@ -190,6 +189,10 @@ class Target(NotifySubscriber):
         if not isinstance(target_mem, TargetMem):
             raise DottException('mem has to be an instance of TargetMem')
         self._mem = target_mem
+
+    @property
+    def monitor(self) -> Monitor:
+        return self._monitor
 
     @property
     def bp_handler(self) -> BreakpointHandler:
@@ -276,16 +279,14 @@ class Target(NotifySubscriber):
             self.exec(f'-file-symbol-file')  # note: -file-symbol-file without arguments clears GDB's symbol table
             self.exec(f'-file-symbol-file {self._symbol_elf_file_name}')
 
-        self.cli_exec(f'monitor flash device {self._gdb_server.device_id}')
-
-        if enable_flash:
-            self.cli_exec('monitor flash download=1')
+        self.monitor.set_flash_device(self._device_name)
+        self.monitor.enable_flash_download(enable_flash)
 
         if load_elf_file_name is not None:
             self.exec('-target-download')
 
     def reset(self, flush_reg_cache: bool = True) -> None:
-        self.cli_exec(self._gdb_srv_quirks.monitor_reset)
+        self.monitor.reset()
         if flush_reg_cache:
             self.reg_flush_cache()
 
@@ -330,7 +331,7 @@ class Target(NotifySubscriber):
 
         if not halt_in_it_block:
             # check if we have halted in an IT block; if yes, do instruction stepping until we have left the IT block
-            while self.reg_xpsr_in_it_block(self.eval(f'${self._gdb_srv_quirks.xpsr_name}')):
+            while self.reg_xpsr_in_it_block(self.eval(f'${self.monitor.xpsr_name()}')):
                 self.step_inst()
 
     def step(self):
@@ -434,7 +435,7 @@ class Target(NotifySubscriber):
     def bp_clear_all(self) -> None:
         self.cli_exec('dott-bp-nostop-delete')
         self.exec('-break-delete')
-        self.cli_exec(self._gdb_srv_quirks.monitor_clear_all_bps)
+        self.monitor.clear_all_breakpoints()
 
     def bp_get_count(self) -> int:
         res = self.exec('-break-list')

@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
                                                                 int(DottConf.get('bl_symbol_addr'))))
 
         # disable FLASH breakpoints
-        dt.cli_exec('monitor flash breakpoints=0')
+        dt.monitor.enable_flash_breakpoints(False)
     except Exception as ex:
         log.exception(str(ex))
         pytest.exit('Unhandled exception target download. See trace above.')
@@ -80,7 +80,7 @@ def target_load_sram() -> None:
 def target_load_flash(silent: bool = False) -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target FLASH. This fixture has
-    SECCION scope and hence is execute once per test session and not for every test where it is specified.
+    SESSION scope and hence is executed once per test session and not for every test where it is specified.
     """
     target_load_common('FLASH', load_to_flash=True, silent=silent)
 
@@ -90,7 +90,7 @@ def target_load_flash(silent: bool = False) -> None:
 def target_load_flash_always(silent: bool = False) -> None:
     """
     This fixture loads the application (and optionally the bootloader) binary onto the target FLASH. This fixture has
-    FUNCTION scope and hence is execute for each test where it is specified.
+    FUNCTION scope and hence is executed for each test where it is specified.
 
     Args:
         silent: If not used as fixture but called directly the silent argument allows to control if the function prints
