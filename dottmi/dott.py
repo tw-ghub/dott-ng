@@ -143,7 +143,8 @@ class Dott(object):
                                     DottConf.conf['device_endianess'],
                                     DottConf.conf['jlink_speed'],
                                     jlink_serial,
-                                    DottConf.conf['jlink_server_addr'])
+                                    DottConf.conf['jlink_server_addr'],
+                                    DottConf.conf['jlink_script'])
 
         return gdb_server
 
@@ -445,6 +446,11 @@ class DottConf:
             DottConf.conf['jlink_serial'] = None
         if DottConf.conf['jlink_serial'] is not None:
             log.info(f'J-LINK serial:         {DottConf.conf["jlink_serial"]}')
+
+        if 'jlink_script' not in DottConf.conf:
+            DottConf.conf['jlink_script'] = None
+        if DottConf.conf['jlink_script'] is not None:
+            log.info(f'J-LINK script:         {DottConf.conf["jlink_script"]}')
 
         if 'gdb_client_binary' not in DottConf.conf:
             default_gdb = 'arm-none-eabi-gdb-py'
