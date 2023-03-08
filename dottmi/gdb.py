@@ -20,6 +20,7 @@ import atexit
 import os
 import platform
 import signal
+import socket
 import subprocess
 import time
 from abc import ABC, abstractmethod
@@ -117,7 +118,7 @@ class GdbServerJLink(GdbServer):
             while startup_done is False and time.time() < end_time:
                 for c in p.connections():
                     if c.laddr.port == self.port:
-                        ip_ver: str = 'IPv6' if c.family == c.family.AF_INET6 else 'IPv4'
+                        ip_ver: str = 'IPv6' if c.family == socket.AF_INET6 else 'IPv4'
                         jlink_ser_num: str = f' (JLINK SN: {self._serial_number}) ' if self._serial_number else ' '
 
                         log.info(f'GDB server{jlink_ser_num}is now listening on port {self.port} ({ip_ver})!')
