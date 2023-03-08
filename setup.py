@@ -347,11 +347,11 @@ shared_classifiers = [
                   "Topic :: Software Development :: Embedded Systems"
               ]
 
-shared_author_email = "thomas.winkler@ams.com"
+shared_author_email = "thomas.winkler@gmail.com"
 
 shared_author = "Thomas Winkler"
 
-shared_url = "https://github.com/twinkler-ams-osram/dott"
+shared_url = "https://github.com/tw-ghub/dott-ng"
 
 shared_install_requires = [
                        "dott-ng-runtime==1.1.0",
