@@ -16,6 +16,13 @@
 #   limitations under the License.
 ###############################################################################
 
+from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from dottmi.target import Target
+
 import configparser
 import glob
 import os
@@ -148,7 +155,7 @@ class Dott(object):
 
         return gdb_server
 
-    def create_target(self, device_name: str, jlink_serial: str = None) -> 'Target':
+    def create_target(self, device_name: str, jlink_serial: str = None) -> Target:
         from dottmi import target
         from dottmi.gdb import GdbClient
 
@@ -182,7 +189,7 @@ class Dott(object):
         return target
 
     @property
-    def target(self):
+    def target(self) -> Target:
         return self._default_target
 
     @target.setter

@@ -29,7 +29,6 @@ from pathlib import Path
 import psutil
 from psutil import NoSuchProcess
 
-import dottmi.target
 from dottmi.dottexceptions import DottException
 from dottmi.gdb_mi import GdbMi
 from dottmi.gdbcontrollerdott import GdbControllerDott
