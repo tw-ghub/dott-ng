@@ -59,7 +59,8 @@ class GdbServer(ABC):
 
 class GdbServerJLink(GdbServer):
     def __init__(self, gdb_svr_binary: str, addr: str, port: int, device_name: str, interface: str, endian: str,
-                 speed: str = '15000', serial_number: str = None, jlink_addr: str = None, jlink_script: str = None):
+                 speed: str = '15000', serial_number: str = None, jlink_addr: str = None, jlink_script: str = None,
+                 jlink_extconf: str = None):
         super().__init__(addr, port)
         self._srv_binary: str = gdb_svr_binary
         self._srv_process = None
@@ -69,6 +70,7 @@ class GdbServerJLink(GdbServer):
         self._serial_number: str = serial_number
         self._jlink_addr: str = jlink_addr
         self._jlink_script: str = jlink_script
+        self._jlink_extconf: str = jlink_extconf
         # Popen.__del__ occasionally complains under Windows about invalid file handles on interpreter shutdown.
         # This is somewhat distracting and is silenced by a custom delete function.
         subprocess.Popen.__del_orig__ = subprocess.Popen.__del__
@@ -103,6 +105,9 @@ class GdbServerJLink(GdbServer):
         if self._jlink_script is not None:
             args.append('-scriptfile')
             args.append(f'{self._jlink_script}')
+        if self._jlink_extconf is not None:
+            args.append(f'{self._jlink_extconf}')
+
         cflags = 0
         if platform.system() == 'Windows':
             cflags = subprocess.CREATE_NEW_PROCESS_GROUP

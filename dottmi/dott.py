@@ -459,6 +459,11 @@ class DottConf:
         if DottConf.conf['jlink_script'] is not None:
             log.info(f'J-LINK script:         {DottConf.conf["jlink_script"]}')
 
+        if 'jlink_extconf' not in DottConf.conf:
+            DottConf.conf['jlink_extconf'] = None
+        if DottConf.conf['jlink_extconf'] is not None:
+            log.info(f'J-LINK extra config:   {DottConf.conf["jlink_script"]}')
+
         if 'gdb_client_binary' not in DottConf.conf:
             default_gdb = 'arm-none-eabi-gdb-py'
             DottConf.conf['gdb_client_binary'] = str(Path(f'{os.environ["DOTTGDBPATH"]}/{default_gdb}'))
