@@ -41,6 +41,9 @@ class GdbMi(object):
         self._trace_commands: bool = False  # enable command tracing
         self._trace_total_walltime: float = 0.0
 
+        # number of write_blocking retires for certain GDB errors conditions
+        self._max_gdb_write_retries: int = 0
+
         # Dictionaries for different types of gdb responses.
         self._response_dicts: Dict[str, BlockingDict] = {'result': BlockingDict(),
                                                          'console': BlockingDict(),
@@ -48,7 +51,7 @@ class GdbMi(object):
 
         # Create and start thread which handles the incoming response from GDB and puts
         # them into the correct response dictionary.
-        self._response_handler = GdbMiResponseHandler(self._mi_controller, self._response_dicts)
+        self._response_handler = GdbMiResponseHandler(self._mi_controller, self._response_dicts, self._trace_commands)
         self._response_handler.start()
 
     ###############################################################################################
@@ -141,6 +144,10 @@ class GdbMi(object):
                      'errors in this session. Check for any previous warning or error messages.')
         return token
 
+    def _write_blocking(self, cmd: str, timeout: float = None) -> Dict:
+        token = self.write_non_blocking(cmd)
+        return self._mi_wait_token_result(token, timeout)
+
     def write_blocking(self, cmd: str, timeout: float = None) -> Dict:
         """
         Sends the provided command to GDB and blocks until gdb returns with the result of the command.
@@ -152,8 +159,15 @@ class GdbMi(object):
         Returns:
             The result of the command sent to GDB as a dictionary.
         """
-        token = self.write_non_blocking(cmd)
-        return self._mi_wait_token_result(token, timeout)
+        try:
+            ret_val: Dict = self._write_blocking(cmd, timeout)
+        except Exception as e:
+            if 'Reply contains invalid hex digit' in str(e) and self._max_gdb_write_retries > 0:
+                self._max_gdb_write_retries -= 1
+                ret_val: Dict = self._write_blocking(cmd, timeout)
+            else:
+                raise e
+        return ret_val
 
     def shutdown(self) -> None:
         """
@@ -200,12 +214,13 @@ class GdbMiContext(object):
 
 # ----------------------------------------------------------------------------------------------------------------------
 class GdbMiResponseHandler(threading.Thread):
-    def __init__(self, mi_controller: GdbController, dicts: Dict) -> None:
+    def __init__(self, mi_controller: GdbController, dicts: Dict, trace_commands: bool = False) -> None:
         super().__init__(name='GdbResponseHandler')
-        self._mi_controller = mi_controller
-        self._response_dicts = dicts
-        self._running = False
+        self._mi_controller: GdbController = mi_controller
+        self._response_dicts: Dict = dicts
+        self._running: bool = False
         self._notify_subscribers = {}
+        self._trace_commands: bool = trace_commands
 
     def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str = None) -> None:
         if (notify_msg, notify_reason) not in self._notify_subscribers:
@@ -224,7 +239,8 @@ class GdbMiResponseHandler(threading.Thread):
 
                 for msg in messages:
                     msg_type = str(msg['type']).lower()
-                    # log.debug('[MSG] %s' % msg)
+                    if self._trace_commands:
+                        log.debug('[MSG] %s' % msg)
 
                     if msg_type == 'result':
                         msg_token = -1
