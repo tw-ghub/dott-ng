@@ -23,6 +23,28 @@ from dottmi.breakpoint import HaltPoint, InterceptPoint, InterceptPointCmds
 
 class TestExampleFunctions(object):
 
+
+    def test_ipython(self, target_load, target_reset):
+        # NOTE: Needs to be run with "-s" argument
+
+        from dottmi.utils import log
+        import sys
+        import logging
+
+        val = dott().target.mem.read_uint32(0x08000000)
+        log.debug('0x%x' % val)
+        dott().target.mem.write_uint32(0x08000000, 0xdeadbeef)
+
+        sys_stdin_orig = sys.stdin
+        sys.stdin = sys.__stdin__
+
+        logging.getLogger('parso.python.diff').disabled = True
+
+        from IPython import embed
+        embed()
+
+        sys.stdin = sys_stdin_orig
+
     ##
     # \amsTestDesc Test function call without arguments.
     # \amsTestPrec None
