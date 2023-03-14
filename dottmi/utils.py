@@ -65,7 +65,7 @@ class DottConvert(object):
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
 
         Returns:
-        An int or and int list if data is longer than four bytes.
+        An int or an int list if data is longer than four bytes.
         """
         if (len(data) % 4) != 0:
             raise ValueError(f'Data shall have a length which is a multiple of 4!')
@@ -83,10 +83,10 @@ class DottConvert(object):
             return list(ret_val)
 
     @staticmethod
-    def bytes_to_uint16(data: bytes, byte_order: str = 'little')  -> Union[int, List[int]]:
+    def bytes_to_uint16(data: bytes, byte_order: str = 'little') -> Union[int, List[int]]:
         """
         This function takes a bytes variable and converts its content to an int, or if data is longer than two
-        bytes, to and int list. The bytes are interpreted as uint16 integers.
+        bytes, to an int list. The bytes are interpreted as uint16 integers.
         Args:
             data: Bytes to be converted to int / int list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
@@ -110,7 +110,31 @@ class DottConvert(object):
             return list(ret_val)
 
     @staticmethod
-    def bytes_to_int32(data: bytes, byte_order: str = 'little')  -> Union[int, List[int]]:
+    def bytes_to_uint8(data: bytes, byte_order: str = 'little') -> Union[int, List[int]]:
+        """
+        This function takes a bytes variable and converts its content to an int, or if data is longer than one
+        byte, to and int list. The bytes are interpreted as uint8 integers.
+        Args:
+            data: Bytes to be converted to int / int list.
+            byte_order: Either 'little' for little endian (default) or 'big' for big endian.
+
+        Returns:
+        An int or an int list if data is longer than one byte.
+        """
+        if byte_order == 'little':
+            ret_val = struct.unpack('<%dB' % (len(data)), data)
+        elif byte_order == 'big':
+            ret_val = struct.unpack('>%dB' % (len(data)), data)
+        else:
+            raise ValueError(f'Unsupported byte order ({byte_order})!')
+
+        if len(ret_val) == 1:
+            return ret_val[0]
+        else:
+            return list(ret_val)
+
+    @staticmethod
+    def bytes_to_int32(data: bytes, byte_order: str = 'little') -> Union[int, List[int]]:
         """
         This function takes a bytes variable and converts its content to an int, or if data is longer than four
         bytes, to an int list. The bytes are interpreted as int32 integers.
@@ -119,7 +143,7 @@ class DottConvert(object):
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
 
         Returns:
-        An int or and int list if data is longer than four bytes.
+        An int or an int list if data is longer than four bytes.
         """
         if (len(data) % 4) != 0:
             raise ValueError(f'Data shall have a length which is a multiple of 4!')
@@ -146,7 +170,7 @@ class DottConvert(object):
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
 
         Returns:
-        An int or and int list if data is longer than two bytes.
+        An int or an int list if data is longer than two bytes.
         """
         if (len(data) % 2) != 0:
             raise ValueError(f'Data shall have a length which is a multiple of 2!')
@@ -164,10 +188,34 @@ class DottConvert(object):
             return list(ret_val)
 
     @staticmethod
+    def bytes_to_int8(data: bytes, byte_order: str = 'little') -> Union[int, List[int]]:
+        """
+        This function takes a bytes variable and converts its content to an int, or if data is longer than one
+        byte, to an int list. The bytes are interpreted as int8 integers.
+        Args:
+            data: Bytes to be converted to int / int list.
+            byte_order: Either 'little' for little endian (default) or 'big' for big endian.
+
+        Returns:
+        An int or an int list if data is longer than two bytes.
+        """
+        if byte_order == 'little':
+            ret_val = struct.unpack('<%db' % (len(data)), data)
+        elif byte_order == 'big':
+            ret_val = struct.unpack('>%db' % (len(data)), data)
+        else:
+            raise ValueError(f'Unsupported byte order ({byte_order})!')
+
+        if len(ret_val) == 1:
+            return ret_val[0]
+        else:
+            return list(ret_val)
+
+    @staticmethod
     def uint32_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
         """
         This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
-        are interpreted as uint32 integers.
+        interpreted as uint32 integers.
         Args:
             data: An int or an int list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
@@ -190,7 +238,7 @@ class DottConvert(object):
     def uint16_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
         """
         This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
-        are interpreted as uint16 integers.
+        interpreted as uint16 integers.
         Args:
             data: An int or an int list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
@@ -210,10 +258,33 @@ class DottConvert(object):
         return ret_val
 
     @staticmethod
+    def uint8_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
+        """
+        This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
+        interpreted as uint8 integers.
+        Args:
+            data: An int or an int list.
+            byte_order: Either 'little' for little endian (default) or 'big' for big endian.
+
+        Returns:
+            A bytes object containing the serialized integer data.
+        """
+        if isinstance(data, int):
+            data = [data]
+        if byte_order == 'little':
+            ret_val = struct.pack('<%dB' % len(data), *data)
+        elif byte_order == 'big':
+            ret_val = struct.pack('>%dB' % len(data), *data)
+        else:
+            raise ValueError(f'Unsupported byte order ({byte_order})!')
+
+        return ret_val
+
+    @staticmethod
     def int32_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
         """
         This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
-        are interpreted as int32 integers.
+        interpreted as int32 integers.
         Args:
             data: An int or an int list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
@@ -235,7 +306,7 @@ class DottConvert(object):
     def int16_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
         """
         This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
-        are interpreted as int16 integers.
+        interpreted as int16 integers.
         Args:
             data: An int or an int list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.
@@ -254,10 +325,32 @@ class DottConvert(object):
         return ret_val
 
     @staticmethod
+    def int8_to_bytes(data: Union[int, List[int]], byte_order: str = 'little') -> bytes:
+        """
+        This function takes either an int or an int list and converts the integer(s) to bytes. The integers are
+        interpreted as int8 integers.
+        Args:
+            data: An int or an int list.
+            byte_order: Either 'little' for little endian (default) or 'big' for big endian.
+
+        Returns: A bytes object containing the serialized integer data.
+        """
+        if isinstance(data, int):
+            data = [data]
+        if byte_order == 'little':
+            ret_val = struct.pack('<%db' % len(data), *data)
+        elif byte_order == 'big':
+            ret_val = struct.pack('>%db' % len(data), *data)
+        else:
+            raise ValueError(f'Unsupported byte order ({byte_order})!')
+
+        return ret_val
+
+    @staticmethod
     def float_to_bytes(data: Union[float, List[float]], byte_order: str = 'little') -> bytes:
         """
         This function takes either an float or a float list and converts the float(s) to bytes. The floats are
-        are interpreted as 32bit floats.
+        interpreted as 32bit floats.
         Args:
             data: An float or an float list.
             byte_order: Either 'little' for little endian (default) or 'big' for big endian.

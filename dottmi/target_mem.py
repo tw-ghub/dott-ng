@@ -16,14 +16,19 @@
 #   limitations under the License.
 ###############################################################################
 
+from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
+
 import binascii
 import math
 import struct
 from enum import Enum
-from typing import Union, Dict
+from typing import Union, Dict, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dottmi.target import Target
 
 from dottmi.dottexceptions import DottException
-from dottmi.utils import log
+from dottmi.utils import log, DottConvert
 
 ALIGN_DEFAULT = 4  # default alignment for memory allocation is 4 bytes
 
@@ -43,7 +48,7 @@ class TargetMemModel(Enum):
 
 # -------------------------------------------------------------------------------------------------
 class TypedPtr:
-    def __init__(self, target: 'Target', addr: int, var_type: str = None) -> None:
+    def __init__(self, target: Target, addr: int, var_type: str = None) -> None:
         """
         Constructor.
 
@@ -52,7 +57,7 @@ class TypedPtr:
             addr: Address represented by the pointer.
             var_type: Type of the variable the pointer is pointing to.
         """
-        self._target: 'Target' = target
+        self._target: Target = target
         self._addr: int = addr
         self._var_type: str = var_type
         if self._var_type is None:
@@ -134,7 +139,7 @@ class TypedPtr:
 
 # -------------------------------------------------------------------------------------------------
 class TargetMem(object):
-    def __init__(self, target: 'Target', target_mem_start_addr: int, target_mem_num_bytes: int, zero_mem: bool = True):
+    def __init__(self, target: Target, target_mem_start_addr: int, target_mem_num_bytes: int, zero_mem: bool = True):
         """
         Constructor.
 
@@ -144,7 +149,7 @@ class TargetMem(object):
             target_mem_num_bytes: The size in bytes of DOTT's on-target scratchpad memory.
             zero_mem: Zero out the on-target scratchpad memory when calling reset (default: True).
         """
-        self._target: 'Target' = target
+        self._target: Target = target
         self._sz_types: Dict = {}  # dict with target sizes (cache used by sizeof)
         self._heap_next_free_addr: int = target_mem_start_addr
         self._target_mem_base_addr: int = target_mem_start_addr
@@ -195,7 +200,7 @@ class TargetMem(object):
 
         return bval
 
-    def write(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, bytes, str], cnt: int = 1) -> None:
+    def write(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, bytes, str]) -> None:
         """
         This function writes the provided data to target memory at destination address. If cnt is other than one,
         the provided data is replicated cnt times.
@@ -203,10 +208,99 @@ class TargetMem(object):
         Args:
             dst_addr: The target's destination memory address to write to.
             val: Content to be written to the target.
-            cnt: The number of times val shall be repeated when writing to the target.
         """
         bval = self._to_bytes(val)
-        self._write_raw(dst_addr, bval * cnt)
+        self._write_raw(dst_addr, bval)
+
+    def write_uint8(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 8bit unsigned integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.uint8_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
+
+    def write_uint16(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 16bit unsigned integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.uint16_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
+
+    def write_uint32(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 32bit unsigned integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.uint32_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
+
+    def write_int8(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 8bit signed integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.int8_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
+
+    def write_int16(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 16bit signed integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.int16_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
+
+    def write_int32(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
+        """
+        This function writes the provided int or list of ints to the target memory at destination
+        address. The int(s) are interpreted as 32bit signed integers.
+
+        Args:
+            dst_addr: The target's destination memory address to write to.
+            val: Content to be written to the target.
+        """
+        if isinstance(val, int) or (isinstance(val, list) and isinstance(val[0], int)):
+            bval: bytes = DottConvert.int32_to_bytes(val, self._target.byte_order)
+            self.write(dst_addr, bval)
+        else:
+            raise ValueError('Illegal argument for val parameter!')
 
     def read(self, src_addr: Union[int, str, TypedPtr], num_bytes: int) -> bytes:
         """
@@ -244,6 +338,90 @@ class TargetMem(object):
             addr_to_read += buf_len
 
         return binascii.unhexlify(content)
+
+    def read_uint8(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt uint8 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of uint8 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt)
+        return DottConvert.bytes_to_uint8(data, byte_order=self._target.byte_order)
+
+    def read_uint16(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt uint16 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of uint16 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt * 2)
+        return DottConvert.bytes_to_uint16(data, byte_order=self._target.byte_order)
+
+    def read_uint32(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt uint32 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of uint32 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt * 4)
+        return DottConvert.bytes_to_uint32(data, byte_order=self._target.byte_order)
+
+    def read_int8(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt int8 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of int8 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt)
+        return DottConvert.bytes_to_int8(data, byte_order=self._target.byte_order)
+
+    def read_int16(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt int16 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of int16 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt * 2)
+        return DottConvert.bytes_to_int16(data, byte_order=self._target.byte_order)
+
+    def read_int32(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+        """
+        Reads cnt int32 values from the target's memory starting from address src_addr.
+
+        :param src_addr: The target's source memory address to read from.
+        :param cnt: Number of int32 values to read.
+
+        :return: Returns single integer for cnt == 1 and an integer array for cnt > 1
+        """
+        if cnt <= 0:
+            raise ValueError('cnt must be greater than zero,')
+        data: bytes = self.read(src_addr, cnt * 4)
+        return DottConvert.bytes_to_int32(data, byte_order=self._target.byte_order)
 
     def reset(self) -> None:
         """
@@ -337,7 +515,7 @@ class TargetMemTestHook(TargetMem):
     test hook) this class also checks that allocation is only performed if the target is halted in the context of the
     test hook.
     """
-    def __init__(self, target: 'Target'):
+    def __init__(self, target: Target):
         start_addr = target.eval('dbg_mem_u32')
         num_bytes = int(target.eval('dbg_mem_u32_sz'))
         super().__init__(target, start_addr, num_bytes)
@@ -366,7 +544,7 @@ class TargetMemNoAlloc(TargetMem):
     This class implements a variation of the TargetMem class which actually does not allow on-target memory allocation.
     Target memory bulk read and write still are supported.
     """
-    def __init__(self, target: 'Target'):
+    def __init__(self, target: Target):
         start_addr = 0xffffffff
         num_bytes = 0
         super().__init__(target, start_addr, num_bytes)
@@ -408,7 +586,7 @@ class TargetMemScoped(object):
             res = dott().target.eval(f'example_SumElements({addr}, {len(elements)})')
             assert (sum(elements) == res), f'expected: {sum(elements)}, is: {res}'
     """
-    def __init__(self, target: 'Target', num_bytes: int, suppress_warnings: bool = False):
+    def __init__(self, target: Target, num_bytes: int, suppress_warnings: bool = False):
         """
         Constructor.
 
@@ -419,7 +597,7 @@ class TargetMemScoped(object):
             suppress_warnings: Suppress warnings which would be issued if the SP and PC are not having the expected
                      values when leaving the 'with ... as' block.
         """
-        self._target: 'Target' = target
+        self._target: Target = target
         self._pc_init: int = 0x0  # the program counter upon entering the 'with' block
         self._sp_init: int = 0x0  # the stack pointer upon entering the 'with' block
         self._sp_init_dec: int = 0x0  # the decremented _sp_init
