@@ -200,7 +200,7 @@ class TargetMem(object):
 
         return bval
 
-    def write(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, bytes, str]) -> None:
+    def write(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, bytes, str], cnt: int = 1) -> None:
         """
         This function writes the provided data to target memory at destination address. If cnt is other than one,
         the provided data is replicated cnt times.
@@ -208,9 +208,10 @@ class TargetMem(object):
         Args:
             dst_addr: The target's destination memory address to write to.
             val: Content to be written to the target.
+            cnt: The number of times val shall be repeated when writing to the target.
         """
         bval = self._to_bytes(val)
-        self._write_raw(dst_addr, bval)
+        self._write_raw(dst_addr, bval * cnt)
 
     def write_uint8(self, dst_addr: Union[int, str, TypedPtr], val: Union[int, List[int]]) -> None:
         """
