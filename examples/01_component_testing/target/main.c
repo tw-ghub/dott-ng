@@ -20,6 +20,7 @@
 #include "stm32f0xx.h"
 
 #include "testhelpers.h"
+#include "quicksort.h"
 
 volatile uint32_t global_data = 0xdeadbeef;
 
@@ -29,7 +30,12 @@ int main(void)
 
 	while(true) {
 		global_data++;
-		__asm("nop");
+
+		/* quicksort exmaple */
+	 	int arr[] = { 4, 3, 5, 2, 1, 3, 2, 3 };
+		int n = 8;
+		quickSort(arr, 0, n - 1);
+		DOTT_LABEL_SAFE("QS_MAIN_DONE");
 	}
 	return 0;
 }

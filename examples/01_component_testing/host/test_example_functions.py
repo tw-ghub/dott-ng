@@ -16,8 +16,10 @@
 #   limitations under the License.
 ###############################################################################
 
-from dottmi.target_mem import TypedPtr
-from dottmi.utils import DottConvert
+from typing import List
+
+from dottmi.target_mem import TypedPtr, TargetMemScoped
+from dottmi.utils import DottConvert, log
 from dottmi.dott import DottConf, dott
 from dottmi.breakpoint import HaltPoint, InterceptPoint, InterceptPointCmds
 
@@ -417,3 +419,53 @@ class TestExampleFunctions(object):
         # check if global data was properly initialized by the scatter loader
         bp_main.wait_complete()
         assert(hex(dott().target.eval('global_data')) == '0xdeadbeef')
+
+    ##
+    # Example test which calls Quicksort in the target's firmware with an argument array and checks if the
+    # output is correctly sorted.
+    def test_qs(self, target_load, target_reset):
+        dt = dott().target
+        dc = DottConvert
+
+        with TargetMemScoped(dt, 32) as mem:
+            inp: List[int] = [18, 4, 3, 5, -2, 34, 1, 3, 2, 3, 9]
+            inp_len: int = len(inp)
+
+            arr: TypedPtr = mem.alloc_type('int', inp_len)
+            dt.mem.write_int32(arr, inp)
+            dt.eval(f'quickSort({arr}, 0, {inp_len - 1})')
+            out: List[int] = dt.mem.read_int32(arr, inp_len)
+
+            log.debug(out)
+            assert out == sorted(inp)
+
+    ##
+    # Example test which, on the fly (by means of an InterceptPoint) changes the behavior of the comparison function
+    # used by the target's Quicksort implementation. Checks if the result is now sorted in reverse order.
+    def test_qs_intercept(self, target_load, target_reset):
+        dt = dott().target
+        dc = DottConvert
+
+        class MyInterceptPoint(InterceptPoint):
+            def reached(self):
+                a: int = self.eval('a')
+                b: int = self.eval('b')
+                if a < b:
+                    self.ret(0)
+                else:
+                    self.ret(1)
+
+        ip = MyInterceptPoint('is_le')
+
+        with TargetMemScoped(dt, 32) as mem:
+            inp: List[int] = [18, 4, 3, 5, -2, 34, 1, 3, 2, 3, 9]
+            inp_len: int = len(inp)
+
+            arr: TypedPtr = mem.alloc_type('int', inp_len)
+            dt.mem.write_int32(arr, inp)
+            dt.eval(f'quickSort({arr}, 0, {inp_len - 1})')
+            out: List[int] = dt.mem.read_int32(arr, inp_len)
+
+            log.debug(out)
+            log.debug(f'InterceptPoint hits: {ip.get_hits()}')
+            assert out == sorted(inp, reverse=True)

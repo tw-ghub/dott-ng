@@ -89,6 +89,7 @@ LDFLAGS += -mcpu=cortex-m0 -mthumb -mlittle-endian
 SRC = $(DOTTDIR)/target/testhelpers.c \
       system_stm32f0xx.c \
       testexamples.c \
+      quicksort.c \
       main.c
 
 # Assembly source files to be built
