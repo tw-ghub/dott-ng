@@ -340,7 +340,7 @@ class TargetMem(object):
 
         return binascii.unhexlify(content)
 
-    def read_uint8(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_uint8(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt uint8 values from the target's memory starting from address src_addr.
 
@@ -354,7 +354,7 @@ class TargetMem(object):
         data: bytes = self.read(src_addr, cnt)
         return DottConvert.bytes_to_uint8(data, byte_order=self._target.byte_order)
 
-    def read_uint16(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_uint16(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt uint16 values from the target's memory starting from address src_addr.
 
@@ -368,7 +368,7 @@ class TargetMem(object):
         data: bytes = self.read(src_addr, cnt * 2)
         return DottConvert.bytes_to_uint16(data, byte_order=self._target.byte_order)
 
-    def read_uint32(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_uint32(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt uint32 values from the target's memory starting from address src_addr.
 
@@ -382,7 +382,7 @@ class TargetMem(object):
         data: bytes = self.read(src_addr, cnt * 4)
         return DottConvert.bytes_to_uint32(data, byte_order=self._target.byte_order)
 
-    def read_int8(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_int8(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt int8 values from the target's memory starting from address src_addr.
 
@@ -396,7 +396,7 @@ class TargetMem(object):
         data: bytes = self.read(src_addr, cnt)
         return DottConvert.bytes_to_int8(data, byte_order=self._target.byte_order)
 
-    def read_int16(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_int16(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt int16 values from the target's memory starting from address src_addr.
 
@@ -410,7 +410,7 @@ class TargetMem(object):
         data: bytes = self.read(src_addr, cnt * 2)
         return DottConvert.bytes_to_int16(data, byte_order=self._target.byte_order)
 
-    def read_int32(self, src_addr: int, cnt: int = 1) -> Union[int, List[int]]:
+    def read_int32(self, src_addr: Union[int, str, TypedPtr], cnt: int = 1) -> Union[int, List[int]]:
         """
         Reads cnt int32 values from the target's memory starting from address src_addr.
 
