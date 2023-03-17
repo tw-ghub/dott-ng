@@ -676,11 +676,15 @@ class TargetMemScoped(object):
         if self._target.is_running():
             raise DottException('Target must be halted when leaving "with" block of scoped on-target memory.')
 
-        # reset the internal state of the TargetMem instance with respect to the memory it managed.
-        self._mem.reset()
-        # reset the SP to the state it had before the 'with' block
-        self.__reset_sp()
-        # make alloc/reset functions of the TargetMem instance unusable after the 'with' block.
-        self._mem.alloc = self.__func_unavailable
-        self._mem.alloc_type = self.__func_unavailable
-        self._mem.reset = self.__func_unavailable
+        if self._target.gdb_client_is_connected:
+            # reset the internal state of the TargetMem instance with respect to the memory it managed.
+            self._mem.reset()
+            # reset the SP to the state it had before the 'with' block
+            self.__reset_sp()
+            # make alloc/reset functions of the TargetMem instance unusable after the 'with' block.
+            self._mem.alloc = self.__func_unavailable
+            self._mem.alloc_type = self.__func_unavailable
+            self._mem.reset = self.__func_unavailable
+        else:
+            if not self._suppress_warnings:
+                log.warn('GDB has been disconnected. Skipping memory cleanup when leaving TargetMemScoped block!')

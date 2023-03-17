@@ -16,13 +16,17 @@
 #   limitations under the License.
 ###############################################################################
 
+from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
+
 import logging
 import os
 import threading
 import time
 from pathlib import Path, PurePosixPath
-from typing import Dict, Union
-from typing import List
+from typing import Dict, Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dottmi.target_mem import TargetMem
 
 from dottmi.breakpointhandler import BreakpointHandler
 from dottmi.dott import DottConf
@@ -116,20 +120,27 @@ class Target(NotifySubscriber):
 
         self._gdb_client_is_connected = True
 
-    def gdb_client_disconnect(self) -> None:
+    def gdb_client_disconnect(self, ignore_timeout=False) -> None:
         """
         Disconnects the GDB client from the GDB server. The target is not resumed.
-        Since DOTT auto-launches JLINK GDB server in 'singlerun' mode, the GDB server process terminates when the
+        Since DOTT auto-launches JLINK GDB server in 'singlerun' mode, the GDB server process terminates when
         the GDB client disconnects. The internal state is updated accordingly by calling gdb_server_stop().
-        This means that the user is required to create and set a new GDB server instance before connecting the
+        This means that the user is required to create and set a new GDB server instance before connecting
         the target's gdb client again.
         Important: For reasons of consistency, this is also done that way if the GDB server was not started by
                    DOTT. Also in this case, a new GDB server object needs to be creates and set.
+
+        Args: ignore_timeout: Ignore a potential timeout when sending the disconnect command to GDB client.
+                              This may be useful when the target has been reset and GDB is not aware of it.
         """
         if self._gdb_client_is_connected:
-            self.cli_exec('disconnect')
-            self._gdb_client_is_connected = False
-            self.gdb_server_stop()
+            try:
+                self.cli_exec('disconnect', timeout=1)
+            except Exception as ex:
+                if not ignore_timeout:
+                    raise ex
+        self._gdb_client_is_connected = False
+        self.gdb_server_stop()
 
     def gdb_server_stop(self) -> None:
         """
@@ -175,17 +186,21 @@ class Target(NotifySubscriber):
         return self._gdb_client
 
     @property
+    def gdb_client_is_connected(self) -> bool:
+        return self._gdb_client_is_connected
+
+    @property
     def symbols(self) -> BinarySymbols:
         return self._symbols
 
     @property
-    def mem(self) -> 'TargetMem':
+    def mem(self) -> TargetMem:
         if self._mem is None:
             raise DottException('No on-target memory access model set at this point!')
         return self._mem
 
     @mem.setter
-    def mem(self, target_mem: 'TargetMem'):
+    def mem(self, target_mem: TargetMem):
         if not isinstance(target_mem, TargetMem):
             raise DottException('mem has to be an instance of TargetMem')
         self._mem = target_mem
