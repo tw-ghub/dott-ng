@@ -40,6 +40,10 @@ def set_config_options() -> None:
     # machine-specific settings (selected based on hostname)
     hostname = socket.gethostname()
 
+    # General options
+    DottConf.set('jlink_script', 'test.jlinkscript')
+    DottConf.set('jlink_extconf', '-log jlink_log.txt')
+
     if hostname.lower() == 'dott':
         # running on JENKINS node
         DottConf.set('pigpio_addr', 'rpidott02')  # PiGPIO daemon on RaspberryPI (rpidott02)

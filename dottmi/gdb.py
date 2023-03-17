@@ -104,10 +104,10 @@ class GdbServerJLink(GdbServer):
             args.append(f'{self._port}')
         if self._jlink_script is not None:
             args.append('-scriptfile')
-            args.append(f'{self._jlink_script}')
+            args.append(self._jlink_script)
         if self._jlink_extconf is not None:
-            args.append(f'{self._jlink_extconf}')
-
+            args.extend(self._jlink_extconf.split())
+        log.warn(args)
         cflags = 0
         if platform.system() == 'Windows':
             cflags = subprocess.CREATE_NEW_PROCESS_GROUP

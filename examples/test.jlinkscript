@@ -1,0 +1,19 @@
+int ConfigTargetSettings(void) {
+  //
+  // Send JLINK command string
+  //
+
+  JLINK_SYS_Report("-- SetAllowSimulation --");
+  JLINK_ExecCommand("SetAllowSimulation = 0");
+
+  // JLINK_SYS_Report("-- SetAllowFlashCache --");
+  // JLINK_ExecCommand("SetAllowFlashCache = 0");
+
+  // JLINK_SYS_Report("-- SetEnableMemCache --");
+  // JLINK_ExecCommand("SetEnableMemCache = 0");
+
+  // JLINK_SYS_Report("-- ExcludeFlashCacheRange 0x08000000-0x09000000 --");
+  // JLINK_ExecCommand("ExcludeFlashCacheRange 0x08000000-0x09000000");
+
+  return 0;
+}
