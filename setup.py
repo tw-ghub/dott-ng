@@ -53,27 +53,17 @@ class CustomInstallCommand(bdist_wheel):
 
         mirror_url: str = os.environ.get('DEP_MIRROR_URL')
 
-        self._gdb_url = 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-win32.zip'
+        self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v12.2.1-1.2/xpack-arm-none-eabi-gcc-12.2.1-1.2-win32-x64.zip'
+        self._gdb_url_orig = self._gdb_url
         if mirror_url is not None:
             print(f'Using DEP_MIRROR_URL ({mirror_url}) for GCC Windows download...')
             # note: use local mirror (declared in build environment), if available
-            self._gdb_url = f'{mirror_url}/gcc-arm-none-eabi-9-2020-q2-update-win32.zip'
-        self._gdb_version_info = 'gcc-arm-none-eabi-9-2020-q2-update-win32'
+            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-12.2.1-1.2-win32-x64.zip'
+        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-12.2.1-1.2-win32-x64'
         self._gdb_folder = os.path.join(CustomInstallCommand.data_apps_folder, 'gdb')
-        self._gdb_dload_file = 'gdb_win32.zip'
-        self._gdb_dload_file_sha256 = '49d6029ecd176deaa437a15b3404f54792079a39f3b23cb46381b0e6fbbe9070'
+        self._gdb_dload_file = 'gdb_win32_amd64.zip'
+        self._gdb_dload_file_sha256 = '5662a2d95bd5b28d24797709864fa8e1379a3bd103112f3c96a6c16db1e2e44a'
         self._gdb_dload_file_valid = False
-
-        self._python27_url = 'https://github.com/winpython/winpython/releases/download/1.7.20170401/WinPython-32bit-2.7.13.1Zero.exe'
-        if mirror_url is not None:
-            # note: use local mirror (declared in build environment), if available
-            print(f'Using DEP_MIRROR_URL ({mirror_url}) for Python 2.7 Windows download...')
-            self._python27_url = f'{mirror_url}/WinPython-32bit-2.7.13.1Zero.exe'
-        self._python27_version_info = 'WinPython 2.7.13.1, 32bit'
-        self._python27_folder = os.path.join(CustomInstallCommand.data_apps_folder, 'python27')
-        self._python27_dload_file = 'python27_win32.exe'
-        self._python27_dload_file_sha256 = 'ac3d276b18b522547bc04f759c3b7e8bfdf222d8a67b3edd847a800b8e2e1c4c'
-        self._python27_dload_file_valid = False
 
         if check_files:
             self._check_dload_files()  # check if download files already exist and are valid
@@ -90,19 +80,7 @@ class CustomInstallCommand(bdist_wheel):
                 print(f'Removing corrupt {self._gdb_dload_file}.')
                 os.remove(self._gdb_dload_file)
 
-        if os.path.exists(self._python27_dload_file):
-            f = open(self._python27_dload_file, "rb")
-            data = f.read()
-            file_hash = hashlib.sha256(data).hexdigest()
-            f.close()
-            if self._python27_dload_file_sha256 == file_hash:
-                print(f'{self._python27_dload_file} exists and has valid checksum')
-                self._python27_dload_file_valid = True
-            else:
-                print(f'Removing corrupt {self._python27_dload_file}.')
-                os.remove(self._python27_dload_file)
-
-        return self._python27_dload_file_valid and self._gdb_dload_file_valid
+        return self._gdb_dload_file_valid
 
     def _print_progress(self, count, block_size, total_size):
         one = total_size / block_size // 100
@@ -111,55 +89,55 @@ class CustomInstallCommand(bdist_wheel):
             sys.stdout.flush()
 
     def _unpack_gcc(self):
-        gdb_files = ('arm-none-eabi-gdb-py.exe',
-                     'arm-none-eabi-addr2line.exe',
-                     'arm-none-eabi-gcov.exe',
-                     'arm-none-eabi-objcopy.exe',
-                     'arm-none-eabi-strip.exe',
-                     'arm-none-eabi-elfedit.exe',
-                     'arm-none-eabi-objdump.exe',
-                     'arm-none-eabi-gcov-dump.exe',
-                     'arm-none-eabi-readelf.exe',
-                     'arm-none-eabi-gcov-tool.exe',
-                     'arm-none-eabi-nm.exe',
-                     'arm-none-eabi-strings.exe',
-                     'license.txt',
-                     'release.txt',
-                     'readme.txt')
+        gdb_files = ('arm-none-eabi-gdb',
+                     'arm-none-eabi-gdb-py3',
+                     'arm-none-eabi-addr2line',
+                     'arm-none-eabi-gcov',
+                     'arm-none-eabi-objcopy',
+                     'arm-none-eabi-strip',
+                     'arm-none-eabi-elfedit',
+                     'arm-none-eabi-objdump',
+                     'arm-none-eabi-gcov-dump',
+                     'arm-none-eabi-readelf',
+                     'arm-none-eabi-gcov-tool',
+                     'arm-none-eabi-nm',
+                     'arm-none-eabi-strings',
+                     'libexec/libz',
+                     'libexec/libncurses',
+                     'libexec/libpython',
+                     'libexec/libexpat',
+                     'libexec/libiconv',
+                     'libexec/libmpfr',
+                     'libexec/libgmp',
+                     'libexec/libstdc++',
+                     'libexec/libgcc_s',
+                     'distro-info/licenses',
+                     'distro-info/CHANGELOG.md',
+                     'README.md')
 
         with ZipFile(self._gdb_dload_file, 'r') as zipObj:
             file_names = zipObj.namelist()
             for file_name in file_names:
-                if file_name.endswith('.py'):
+                if ('python' in file_name) and ('/test/' not in file_name):
                     zipObj.extract(file_name, self._gdb_folder)
                 else:
                     for gdb_file in gdb_files:
-                        if file_name.endswith(gdb_file):
+                        if gdb_file in file_name:
                             zipObj.extract(file_name, self._gdb_folder)
 
+        # FIXME: correct folder path
+#        shutil.move(f'{self._gdb_folder}/bin/arm-none-eabi-gdb-py3.exe', f'{self._gdb_folder}/bin/arm-none-eabi-gdb-py.exe')
+
         with open(os.path.join(self._gdb_folder, 'version.txt'), 'w+') as f:
-            f.write(f'GDB and support tools extracted from GNU Arm Embedded Toolchain.\n')
+            f.write(f'GDB and support tools extracted from xPack GNU Arm Embedded GCC toolchain.\n')
             f.write(f'version: {self._gdb_version_info}\n')
-            f.write(f'downloaded from: {self._gdb_url}\n')
+            f.write(f'downloaded from: {self._gdb_url_orig}\n')
             f.write(f'Note: To save space only selected parts of the full package have been included.\n'
                     f'      No other modifications have been performed.\n'
-                    f'      The license of GDB can be found in share/doc/gcc-arm-none-eabi/license.txt\n')
+                    f'      The license of GDB and its components can be found in distro-info/licenses.\n'
+                    f'\n'
+                    f'Special thanks to Liviu Ionescu for his excellent work to provide the xPack version of the toolchain!\n')
 
-    def _unpack_python27(self):
-        inst_path = self._python27_folder.replace('\\', '\\\\').replace('/', '\\\\')
-
-        # unpack WinPython
-        args = shlex.split(f'{self._python27_dload_file} /S /D={inst_path}')
-        proc = subprocess.Popen(args)
-        proc.wait()
-
-        with open(os.path.join(self._python27_folder, 'version.txt'), 'w+') as f:
-            f.write(f'WinPython 2.7 Environment for GDB\n')
-            f.write(f'version: {self._python27_version_info}\n')
-            f.write(f'downloaded from: {self._python27_url}\n')
-            f.write(f'Note: This WinPython 2.7.13.1 environment is required for the GNU Arm Embedded GDB.\n'
-                    f'      No modifications have been performed.\n'
-                    f'      The license of Python 2.7 can be found in python-2.7.13/LICENSE.txt')
 
     def _write_version(self):
         global build_version
@@ -174,16 +152,10 @@ class CustomInstallCommand(bdist_wheel):
         sys.stdout.flush()
 
         if not self._gdb_dload_file_valid:
-            with urllib.request.urlopen(self._gdb_url, context=ssl.SSLContext()) as u, open (self._gdb_dload_file, 'wb') as f:
+            with urllib.request.urlopen(self._gdb_url, context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)) as u, open (self._gdb_dload_file, 'wb') as f:
                 f.write(u.read())
 
 
-        print(' [done]')
-        print('  Python 2.7 library for GDB', end='')
-        sys.stdout.flush()
-        if not self._python27_dload_file_valid:
-            with urllib.request.urlopen(self._python27_url, context=ssl.SSLContext()) as u, open (self._python27_dload_file, 'wb') as f:
-                f.write(u.read())
         print(' [done]')
 
         if not self._check_dload_files():
@@ -195,10 +167,6 @@ class CustomInstallCommand(bdist_wheel):
         print('  Unpacking GDB from GNU Arm Embedded Toolchain...', end='')
         sys.stdout.flush()
         self._unpack_gcc()
-        print('  [done]')
-        print('  Unpacking Python 2.7 library for GDB...', end='')
-        sys.stdout.flush()
-        self._unpack_python27()
         print('  [done]')
 
         # write runtime apps version
@@ -236,33 +204,23 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
 
         mirror_url: str = os.environ.get('DEP_MIRROR_URL')
 
-        self._gdb_url = 'https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2'
+        self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v12.2.1-1.2/xpack-arm-none-eabi-gcc-12.2.1-1.2-linux-x64.tar.gz'
+        self._gdb_url_orig = self._gdb_url
         if mirror_url is not None:
             # note: use local mirror (declared in build environment), if available
             print(f'Using DEP_MIRROR_URL ({mirror_url}) for GCC Linux download...')
-            self._gdb_url = f'{mirror_url}/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2'
-        self._gdb_version_info = 'gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux'
+            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-12.2.1-1.2-linux-x64.tar.gz'
+        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-12.2.1-1.2-linux-x64'
         self._gdb_folder = os.path.join(CustomInstallCommandLinuxAmd64.data_apps_folder, 'gdb')
-        self._gdb_dload_file = 'gdb_linux_amd64.tar.bz2'
-        self._gdb_dload_file_sha256 = '5adc2ee03904571c2de79d5cfc0f7fe2a5c5f54f44da5b645c17ee57b217f11f'
+        self._gdb_dload_file = 'gdb_linux_amd64.tar.gz'
+        self._gdb_dload_file_sha256 = '65b52009ff1b7f22f5e030cc04e17e5e7d7f2436a62488aca905062a71d3944c'
         self._gdb_dload_file_valid = False
-
-        self._python27_url = 'http://de.archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7_2.7.18~rc1-2_amd64.deb'
-        # note: use local mirror to avoid sporadic download issues
-        if mirror_url is not None:
-            # note: use local mirror (declared in build environment), if available
-            print(f'Using DEP_MIRROR_URL ({mirror_url}) for Python 2.7 Linux download...')
-            self._python27_url = f'{mirror_url}/libpython2.7_2.7.18~rc1-2_amd64.deb'
-        self._python27_version_info = 'libpython2.7.18~rc1-2, 64bit'
-        self._python27_folder = os.path.join(CustomInstallCommandLinuxAmd64.data_apps_folder, 'python27')
-        self._python27_dload_file = 'python27_linux_amd64.deb'
-        self._python27_dload_file_sha256 = '77d67e841b4812bdc32274219cc86c316d357c00e8589d54be9987cb060db832'
-        self._python27_dload_file_valid = False
 
         self._check_dload_files()  # check if download files already exist and are valid
 
     def _unpack_gcc(self):
-        gdb_files = ('arm-none-eabi-gdb-py',
+        gdb_files = ('arm-none-eabi-gdb',
+                     'arm-none-eabi-gdb-py3',
                      'arm-none-eabi-addr2line',
                      'arm-none-eabi-gcov',
                      'arm-none-eabi-objcopy',
@@ -274,37 +232,46 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
                      'arm-none-eabi-gcov-tool',
                      'arm-none-eabi-nm',
                      'arm-none-eabi-strings',
-                     'license.txt',
-                     'release.txt',
-                     'readme.txt')
+                     'libexec/libz',
+                     'libexec/libncurses',
+                     'libexec/libpython',
+                     'libexec/libexpat',
+                     'libexec/libiconv',
+                     'libexec/libmpfr',
+                     'libexec/libgmp',
+                     'libexec/libstdc++',
+                     'libexec/libgcc_s',
+                     'distro-info/licenses',
+                     'distro-info/CHANGELOG.md',
+                     'README.md')
 
-        tar = tarfile.open(self._gdb_dload_file, 'r:bz2')
+        tar = tarfile.open(self._gdb_dload_file, 'r:gz')
         first_dir: str = tar.getmembers()[0].name.split('/')[0]
         gdb_folder_tmp = f'{self._gdb_folder}_tmp'
 
         for file_name in tar:
-            if file_name.name.endswith('.py'):
+            if ('python' in file_name.name) and ('/test/' not in file_name.name):
                 tar.extract(file_name, gdb_folder_tmp)
             else:
                 for gdb_file in gdb_files:
-                    if file_name.name.endswith(gdb_file):
+                    if gdb_file in file_name.name:
                         tar.extract(file_name, gdb_folder_tmp)
 
         shutil.move(os.path.join(gdb_folder_tmp, first_dir), self._gdb_folder)
         shutil.rmtree(gdb_folder_tmp)
 
+        shutil.move(f'{self._gdb_folder}/bin/arm-none-eabi-gdb-py3', f'{self._gdb_folder}/bin/arm-none-eabi-gdb-py')
+
         with open(os.path.join(self._gdb_folder, 'version.txt'), 'w+') as f:
-            f.write(f'GDB and support tools extracted from GNU Arm Embedded Toolchain.\n')
+            f.write(f'GDB and support tools extracted from xPack GNU Arm Embedded GCC toolchain.\n')
             f.write(f'version: {self._gdb_version_info}\n')
-            f.write(f'downloaded from: {self._gdb_url}\n')
+            f.write(f'downloaded from: {self._gdb_url_orig}\n')
             f.write(f'Note: To save space only selected parts of the full package have been included.\n'
                     f'      No other modifications have been performed.\n'
-                    f'      The license of GDB can be found in share/doc/gcc-arm-none-eabi/license.txt\n')
+                    f'      The license of GDB and its components can be found in distro-info/licenses.\n'
+                    f'\n'
+                    f'Special thanks to Liviu Ionescu for his excellent work to provide the xPack version of the toolchain!\n')
 
-    def _unpack_python27(self):
-        pass
-        # On Ubuntu 20.04 install Python2.7 (lib) and NCurses 5 (lib) to satisfy gdb's dependencies.
-        # sudo apt-get install libpython2.7 libncurses5 python-is-python3
 
     def finalize_options(self):
         super().finalize_options()
@@ -354,16 +321,13 @@ shared_author = "Thomas Winkler"
 shared_url = "https://github.com/tw-ghub/dott-ng"
 
 shared_install_requires = [
-                       "dott-ng-runtime==1.1.0",
+                       "dott-ng-runtime==1.12.0",
                        "pygdbmi==0.10.0.1",
                        "pylink-square==0.11.1",
                        "pytest",
                        "pytest-cov",
                        "pytest-instafail",
-                       "pytest-repeat",
-                       "pyserial",
-                       "pigpio",
-                       "matplotlib"
+                       "pytest-repeat"
                    ]
 
 def setup_dott_runtime():
@@ -386,7 +350,7 @@ def setup_dott_runtime():
         classifiers=shared_classifiers,
         install_requires=[
         ],
-        python_requires='>=3.6',
+        python_requires='>=3.8',
     )
 
 
@@ -409,7 +373,7 @@ def setup_dott_runtime_linux_amd64():
         include_package_data=True,
         shared_classifiers=shared_classifiers,
         install_requires=shared_install_requires,
-        python_requires='>=3.6',
+        python_requires='>=3.8',
     )
 
 
@@ -431,7 +395,7 @@ def setup_dott():
         include_package_data=False,
         classifiers=shared_classifiers,
         install_requires=shared_install_requires,
-        python_requires='>=3.6',
+        python_requires='>=3.8',
     )
 
 
