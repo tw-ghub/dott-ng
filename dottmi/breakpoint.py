@@ -257,7 +257,7 @@ class InterceptPointCmds(Breakpoint):
 
 
 # -------------------------------------------------------------------------------------------------
-class InterceptPoint(threading.Thread, Breakpoint) -> None:
+class InterceptPoint(threading.Thread, Breakpoint):
     _intercept_points = []
 
     @staticmethod
@@ -277,7 +277,7 @@ class InterceptPoint(threading.Thread, Breakpoint) -> None:
             log.warn('Not all Intercept points were deleted!')
 
     # ---------------------------------------------------------------------------------------------
-    def __init__(self, location: str, target: Target = None):
+    def __init__(self, location: str, target: Target = None) -> None:
         Breakpoint.__init__(self, location, target)
         threading.Thread.__init__(self, name='InterceptPoint')
         self._running: bool = False
