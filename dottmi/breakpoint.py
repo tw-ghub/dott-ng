@@ -16,6 +16,8 @@
 #   limitations under the License.
 ###############################################################################
 
+from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
+
 import json
 import multiprocessing
 import queue
@@ -23,7 +25,10 @@ import socket
 import threading
 import warnings
 from abc import *
-from typing import List, Union, Dict
+from typing import List, Union, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dottmi.target import Target
 
 from dottmi.dott import dott
 from dottmi.dottexceptions import DottException
@@ -32,24 +37,39 @@ from dottmi.gdb_shared import BpMsg, BpSharedConf
 from dottmi.utils import log, cast_str
 
 
-# Abstract base class defining common methods for all breakpoints
+# Abstract base class defining common methods for all breakpoints.
 class Breakpoint(ABC):
 
-    def __init__(self, location: str, target: 'Target' = None):
-        self._dott_target: 'Target' = target
-        if self._dott_target is None:
-            self._dott_target: 'Target' = dott().target  # Note: _target used by Thread; InterceptPoint inherits from it
+    def __init__(self, location: [str, int], target: Target = None) -> None:
+        """
+        Create a new breakpoint at a given program location.
 
-        if not location.startswith(('+', '-', '*')):  # GDB locations may be an address (*)
-                                                      # or a line offset (+/-) instead of a symbol
-            if not self._dott_target.symbols.exists(location):
-                raise DottException(f'No symbol "{location}" found in target binary symbols.')
+        Args:
+            location: Either a symbol name (str), an address (int) or a GDB location (str) which may be an address (prefixed with *) or a line offset (+/-).
+            target: The target the breakpoint is created for (default target is used if no target is specified).
+        """
+        self._dott_target: Target = target
+        if self._dott_target is None:
+            self._dott_target: Target = dott().target  # Note: _target used by Thread; InterceptPoint inherits from it
+
+        if isinstance(location, str):
+            if not location.startswith(('+', '-', '*')):  # GDB locations may be an address (*) or a line offset (+/-) instead of a symbol
+                if not self._dott_target.symbols.exists(location):
+                    raise DottException(f'No symbol "{location}" found in target binary symbols.')
+        elif isinstance(location, int):
+            location = f'*{location}'
+        else:
+            raise ValueError('Parameter location is not of type str or int.')
+
         self._location: str = location
         self._hits: int = 0
         self._num: int = -1
 
     @property
     def num(self) -> int:
+        """
+        The breakpoint number.
+        """
         return self._num
 
     @num.setter
@@ -58,38 +78,75 @@ class Breakpoint(ABC):
 
     @abstractmethod
     def reached(self) -> None:
+        """
+        Executed when the breakpoint is reached.
+        """
         pass
 
     @abstractmethod
     def wait_complete(self) -> None:
+        """
+        This method allows to block the execution of the Python test program until the breakpoint has been hit.
+        """
         pass
 
     @abstractmethod
     def delete(self) -> None:
+        """
+        Deletes the breakpoint.
+        """
         pass
 
     @abstractmethod
     def exec(self, cmd: str) -> None:
+        """
+        Execute a GDB-MI command in blocking mode.
+
+        Args:
+            cmd: GDB-MI command to be executed.
+        """
         pass
 
     @abstractmethod
     def eval(self, cmd: str) -> None:
+        """
+        This method takes an expression to be evaluated. See target.eval() for details.
+
+        Args:
+            cmd: Expression to be evaluated.
+        """
         pass
 
     @abstractmethod
     def ret(self, ret_val: Union[int, str] = None) -> None:
+        """
+        Return from the currently executed target function.
+
+        Args:
+            ret_val: Value to be returned to the calling function.
+        """
         pass
 
     def get_location(self) -> str:
+        """
+        Get the location of the breakpoint.
+
+        Returns: The breakpoint location.
+        """
         return self._location
 
     def get_hits(self) -> int:
+        """
+        Returns the number of this for the breakpoint.
+
+        Returns: The number of hits the breakpoint has seen.
+        """
         return self._hits
 
 
 # -------------------------------------------------------------------------------------------------
 class HaltPoint(Breakpoint):
-    def __init__(self, location: str, temporary: bool = False, target: 'Target' = None):
+    def __init__(self, location: str, temporary: bool = False, target: Target = None) -> None:
         super().__init__(location, target)
         self._bp_info: Dict = None
         self._q: queue.Queue = queue.Queue()
@@ -154,7 +211,7 @@ class HaltPoint(Breakpoint):
 
 # -------------------------------------------------------------------------------------------------
 class Barrier(HaltPoint):
-    def __init__(self, location: str, temporary: bool = False, parties: int = 1, target: 'Target' = None):
+    def __init__(self, location: str, temporary: bool = False, parties: int = 1, target: Target = None) -> None:
         if parties != 1:
             raise DottException('DOTT barrier implementation only supports 1 party (thread) '
                                 'to wait for a location to be reached.')
@@ -170,7 +227,7 @@ class Barrier(HaltPoint):
 
 # -------------------------------------------------------------------------------------------------
 class InterceptPointCmds(Breakpoint):
-    def __init__(self, location: str, commands: List, target: 'Target' = None):
+    def __init__(self, location: str, commands: List, target: Target = None) -> None:
         super().__init__(location, target)
         # serialize function name and commands using JSON and supply them to custom GDB command
         com = json.dumps([location] + commands)
@@ -200,7 +257,7 @@ class InterceptPointCmds(Breakpoint):
 
 
 # -------------------------------------------------------------------------------------------------
-class InterceptPoint(threading.Thread, Breakpoint):
+class InterceptPoint(threading.Thread, Breakpoint) -> None:
     _intercept_points = []
 
     @staticmethod
@@ -220,7 +277,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
             log.warn('Not all Intercept points were deleted!')
 
     # ---------------------------------------------------------------------------------------------
-    def __init__(self, location: str, target: 'Target' = None):
+    def __init__(self, location: str, target: Target = None):
         Breakpoint.__init__(self, location, target)
         threading.Thread.__init__(self, name='InterceptPoint')
         self._running: bool = False
