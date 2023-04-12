@@ -56,6 +56,10 @@ class Monitor(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def erase_flash(self) -> None:
+        pass
+
+    @abc.abstractmethod
     def clear_all_breakpoints(self) -> None:
         pass
 
@@ -80,6 +84,9 @@ class MonitorJLink(Monitor):
         flag: int = 1 if enable else 0
         self.run_cmd(f'flash breakpoints={flag}')
 
+    def erase_flash(self) -> None:
+        self.run_cmd('flash erase')
+
     def clear_all_breakpoints(self) -> None:
         self.run_cmd('clrbp')
 
@@ -102,6 +109,9 @@ class MonitorOpenOCD(Monitor):
     def enable_flash_breakpoints(self, enable: bool) -> None:
         flag: str = 'enable' if enable else 'disable'
         self.run_cmd(f'gdb_memory_map {flag}')
+
+    def erase_flash(self) -> None:
+        raise NotImplementedError('OpenOCD monitor currently does not support FLASH erase.')
 
     def clear_all_breakpoints(self) -> None:
         self.run_cmd('rbp all')
