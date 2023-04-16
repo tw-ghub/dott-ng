@@ -27,7 +27,7 @@ import sys
 from ctypes import CDLL
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from dottmi.dottexceptions import DottException
 from dottmi.target_mem import TargetMemModel
@@ -35,31 +35,37 @@ from dottmi.utils import log
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Central Dott configuration registry. Data is read in from dott ini file. Additional settings can be made via
+# DOTT configuration registry. Data is read in from dott ini file. Additional settings can be made via
 # project specific conftest files.
-class DottConf:
-    conf = {}
-    dott_runtime = None
-    parsed = False
+class DottConfExt(object):
 
-    @staticmethod
-    def set(key: str, val: str) -> None:
-        DottConf.conf[key] = val
+    def __init__(self, ini_file='dott.ini') -> None:
+        self._conf = {}
+        self._dott_runtime = None
+        self._parsed = None
+        self._dott_ini = ini_file
+        self.conf = self
 
-    @staticmethod
-    def set_runtime_if_unset(dott_runtime_path: str) -> None:
+    def set(self, key: str, val: str) -> None:
+        self._conf[key] = val
+
+    def set_runtime_if_unset(self, dott_runtime_path: str) -> None:
         if not os.path.exists(dott_runtime_path):
             raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
         if os.environ.get('DOTTRUNTIME') is None:
             os.environ['DOTTRUNTIME'] = dott_runtime_path
 
-    @staticmethod
-    def get(key: str):
-        return DottConf.conf[key]
+    def get(self, key: str):
+        return self._conf[key]
 
-    @staticmethod
-    def _setup_runtime():
-        DottConf.set('DOTTRUNTIME', None)
+    def __getitem__(self, key) -> Union[int, str, None]:
+        return self._conf[key]
+
+    def __setitem__(self, key, value) -> None:
+        self._conf[key] = value
+
+    def _setup_runtime(self) -> None:
+        self.set('DOTTRUNTIME', None)
 
         dott_runtime_path = sys.prefix + os.sep + 'dott_data'
         if os.path.exists(dott_runtime_path):
@@ -73,10 +79,10 @@ class DottConf:
                     line = f.readline()
             os.environ['DOTTGDBPATH'] = str(Path(f'{dott_runtime_path}/apps/gdb/bin'))
             os.environ['PYTHONPATH27'] = str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13'))
-            DottConf.set('DOTTRUNTIME', f'{dott_runtime_path} (dott-runtime package)')
-            DottConf.set('DOTT_RUNTIME_VER', runtime_version)
-            DottConf.set('DOTTGDBPATH', str(Path(f'{dott_runtime_path}/apps/gdb/bin')))
-            DottConf.set('PYTHONPATH27', str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13')))
+            self.set('DOTTRUNTIME', f'{dott_runtime_path} (dott-runtime package)')
+            self.set('DOTT_RUNTIME_VER', runtime_version)
+            self.set('DOTTGDBPATH', str(Path(f'{dott_runtime_path}/apps/gdb/bin')))
+            self.set('PYTHONPATH27', str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13')))
 
             # Linux: check if libpython2.7 and libnurses5 are installed. Windows: They are included in the DOTT runtime.
             if platform.system() == 'Linux':
@@ -84,28 +90,27 @@ class DottConf:
                                      stdout=subprocess.PIPE)
                 if res.returncode != 0:
                     raise DottException('Unable to start gdb client. This might be caused by missing dependencies.\n'
-                                         'Make sure that libpython2.7 and libncurses5 are installed.')
+                                        'Make sure that libpython2.7 and libncurses5 are installed.')
 
         # If DOTTRUNTIME is set in the environment it overrides the integrated runtime in dott_data
         if os.environ.get('DOTTRUNTIME') is not None and os.environ.get('DOTTRUNTIME').strip() != '':
             dott_runtime_path = os.environ.get('DOTTRUNTIME')
             dott_runtime_path = dott_runtime_path.strip()
-            DottConf.set('DOTTRUNTIME', dott_runtime_path)
+            self.set('DOTTRUNTIME', dott_runtime_path)
 
             if not os.path.exists(dott_runtime_path):
                 raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
             try:
-                DottConf.dott_runtime = SourceFileLoader('dottruntime', dott_runtime_path + os.sep + 'dottruntime.py').load_module()
-                DottConf.dott_runtime.setup()
-                DottConf.set('DOTT_RUNTIME_VER', DottConf.dott_runtime.DOTT_RUNTIME_VER)
+                self._dott_runtime = SourceFileLoader('dottruntime', dott_runtime_path + os.sep + 'dottruntime.py').load_module()
+                self._dott_runtime.setup()
+                self.set('DOTT_RUNTIME_VER', self._dott_runtime.DOTT_RUNTIME_VER)
             except Exception as ex:
                 raise Exception('Error setting up DOTT runtime.')
 
-        if DottConf.get('DOTTRUNTIME') is None:
+        if self.get('DOTTRUNTIME') is None:
             raise Exception('Runtime components neither found in DOTT data path nor in DOTTRUNTIME folder.')
 
-    @staticmethod
-    def _get_jlink_path(segger_paths: List[str], segger_lib_name: str, jlink_gdb_server_binary: str) -> Tuple[str, str, str]:
+    def _get_jlink_path(self, segger_paths: List[str], segger_lib_name: str, jlink_gdb_server_binary: str) -> Tuple[str, str, str]:
         all_libs = {}
 
         for search_path in segger_paths:
@@ -143,23 +148,21 @@ class DottConf:
 
         return jlink_path, segger_lib_name, jlink_version
 
-    @staticmethod
-    def parse_config(force_reparse = False):
-        if DottConf.parsed and not force_reparse:
+    def parse_config(self, force_reparse: bool = False) -> None:
+        if self._parsed and not force_reparse:
             return
-        DottConf.parsed = True
+        self._parsed = True
 
         # setup runtime environment
-        DottConf._setup_runtime()
-        log.info(f'DOTT runtime:          {DottConf.get("DOTTRUNTIME")}')
-        log.info(f'DOTT runtime version:  {DottConf.get("DOTT_RUNTIME_VER")}')
+        self._setup_runtime()
+        log.info(f'DOTT runtime:          {self.get("DOTTRUNTIME")}')
+        log.info(f'DOTT runtime version:  {self.get("DOTT_RUNTIME_VER")}')
 
         # print working directory
         log.info(f'work directory:        {os.getcwd()}')
 
         # default ini file
         dott_section = 'DOTT'
-        dott_ini = 'dott.ini'
 
         # JLINK gdb server
         if platform.system() == 'Linux':
@@ -177,13 +180,13 @@ class DottConf:
             jlink_default_path = [os.environ['DOTTJLINKPATH']]
 
         # if a dott.ini is found in the working directory then parse it
-        if os.path.exists(os.getcwd() + os.sep + dott_ini):
+        if os.path.exists(os.getcwd() + os.sep + self._dott_ini):
             # read ini file
             ini = configparser.ConfigParser()
-            ini.read(os.getcwd() + os.sep + dott_ini)
+            ini.read(os.getcwd() + os.sep + self._dott_ini)
 
             if not ini.has_section(dott_section):
-                raise Exception(f'Unable to find section DOTT in {dott_ini}')
+                raise Exception(f'Unable to find section DOTT in {self._dott_ini}')
 
             # create an in-memory copy of the DOTT section of the init file
             conf_tmp = dict(ini[dott_section].items())
@@ -194,198 +197,221 @@ class DottConf:
 
         # only copy items from ini to in-memory config which are not already present (i.e., set programmatically)
         for k, v in conf_tmp.items():
-            if k not in DottConf.conf.keys():
-                DottConf.conf[k] = v
+            if k not in self._conf.keys():
+                self._conf[k] = v
 
         # Go through the individual config options and set reasonable defaults
         # where they are missing (or return an error)
 
-        if 'bl_load_elf' not in DottConf.conf:
-            DottConf.conf['bl_load_elf'] = None
-        if DottConf.conf['bl_load_elf'] is not None:
-            if not os.path.exists(DottConf.conf['bl_load_elf']):
-                raise ValueError(f'{DottConf.conf["bl_load_elf"]} does not exist.')
-        log.info(f'BL ELF (load):         {DottConf.conf["bl_load_elf"]}')
+        if 'bl_load_elf' not in self._conf:
+            self._conf['bl_load_elf'] = None
+        if self._conf['bl_load_elf'] is not None:
+            if not os.path.exists(self._conf['bl_load_elf']):
+                raise ValueError(f'{self._conf["bl_load_elf"]} does not exist.')
+        log.info(f'BL ELF (load):         {self._conf["bl_load_elf"]}')
 
-        if 'bl_symbol_elf' not in DottConf.conf:
+        if 'bl_symbol_elf' not in self._conf:
             # if no symbol file is specified assume that symbols are contained in the load file
-            DottConf.conf['bl_symbol_elf'] = DottConf.conf['bl_load_elf']
-        if DottConf.conf['bl_symbol_elf'] is not None:
-            if not os.path.exists(DottConf.conf['bl_symbol_elf']):
-                raise ValueError(f'{DottConf.conf["bl_symbol_elf"]} does not exist.')
-        log.info(f'BL ELF (symbol):       {DottConf.conf["bl_symbol_elf"]}')
+            self._conf['bl_symbol_elf'] = self._conf['bl_load_elf']
+        if self._conf['bl_symbol_elf'] is not None:
+            if not os.path.exists(self._conf['bl_symbol_elf']):
+                raise ValueError(f'{self._conf["bl_symbol_elf"]} does not exist.')
+        log.info(f'BL ELF (symbol):       {self._conf["bl_symbol_elf"]}')
 
-        if 'bl_symbol_addr' not in DottConf.conf:
-            DottConf.conf['bl_symbol_addr'] = 0x0
-        elif DottConf.conf['bl_symbol_addr'].strip() == '':
-            DottConf.conf['bl_symbol_addr'] = 0x0
+        if 'bl_symbol_addr' not in self._conf:
+            self._conf['bl_symbol_addr'] = 0x0
+        elif self._conf['bl_symbol_addr'].strip() == '':
+            self._conf['bl_symbol_addr'] = 0x0
         else:
-            DottConf.conf['bl_symbol_addr'] = int(DottConf.conf['bl_symbol_addr'], base=16)
-        log.info(f'BL ADDR (symbol):      0x{DottConf.conf["bl_symbol_addr"]:x}')
+            self._conf['bl_symbol_addr'] = int(self._conf['bl_symbol_addr'], base=16)
+        log.info(f'BL ADDR (symbol):      0x{self._conf["bl_symbol_addr"]:x}')
 
-        if 'app_load_elf' not in DottConf.conf:
+        if 'app_load_elf' not in self._conf:
             raise Exception(f'app_load_elf not set')
-        if not os.path.exists(DottConf.conf['app_load_elf']):
-            raise ValueError(f'{DottConf.conf["app_load_elf"]} does not exist.')
-        log.info(f'APP ELF (load):        {DottConf.conf["app_load_elf"]}')
+        if not os.path.exists(self._conf['app_load_elf']):
+            raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
+        log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
 
-        if 'app_symbol_elf' not in DottConf.conf:
+        if 'app_symbol_elf' not in self._conf:
             # if no symbol file is specified assume that symbols are contained in the load file
-            DottConf.conf['app_symbol_elf'] = DottConf.conf['app_load_elf']
-        if not os.path.exists(DottConf.conf['app_symbol_elf']):
-            raise ValueError(f'{DottConf.conf["app_symbol_elf"]} does not exist.')
-        log.info(f'APP ELF (symbol):      {DottConf.conf["app_symbol_elf"]}')
+            self._conf['app_symbol_elf'] = self._conf['app_load_elf']
+        if not os.path.exists(self._conf['app_symbol_elf']):
+            raise ValueError(f'{self._conf["app_symbol_elf"]} does not exist.')
+        log.info(f'APP ELF (symbol):      {self._conf["app_symbol_elf"]}')
 
-        if 'device_name' not in DottConf.conf:
-            DottConf.conf["device_name"] = 'unknown'
-        log.info(f'Device name:           {DottConf.conf["device_name"]}')
+        if 'device_name' not in self._conf:
+            self._conf["device_name"] = 'unknown'
+        log.info(f'Device name:           {self._conf["device_name"]}')
 
-        if 'device_endianess' not in DottConf.conf:
-            DottConf.conf['device_endianess'] = 'little'
+        if 'device_endianess' not in self._conf:
+            self._conf['device_endianess'] = 'little'
         else:
-            if DottConf.conf['device_endianess'] != 'little' and DottConf.conf['device_endianess'] != 'big':
+            if self._conf['device_endianess'] != 'little' and self._conf['device_endianess'] != 'big':
                 raise ValueError(f'device_endianess in {dott_ini} should be either "little" or "big".')
-        log.info(f'Device endianess:      {DottConf.conf["device_endianess"]}')
+        log.info(f'Device endianess:      {self._conf["device_endianess"]}')
 
-        if 'monitor_type' not in DottConf.conf:
-            DottConf.conf['monitor_type'] = 'jlink'
+        if 'monitor_type' not in self._conf:
+            self._conf['monitor_type'] = 'jlink'
         else:
-            DottConf.conf['monitor_type'] = DottConf.conf['monitor_type'].strip().lower()
-            if DottConf.conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
+            self._conf['monitor_type'] = self._conf['monitor_type'].strip().lower()
+            if self._conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
                 raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd"')
-        log.info(f'Selected monitor type: {DottConf.conf["monitor_type"].upper()}')
+        log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()}')
 
         # determine J-Link path and version
-        jlink_path, jlink_lib_name, jlink_version = DottConf._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
-        DottConf.conf["jlink_path"] = jlink_path
-        DottConf.conf["jlink_lib_name"] = jlink_lib_name
-        DottConf.conf["jlink_version"] = jlink_version
-        log.info(f'J-LINK local path:     {DottConf.conf["jlink_path"]}')
-        log.info(f'J-LINK local version:  {DottConf.conf["jlink_version"]}')
+        jlink_path, jlink_lib_name, jlink_version = self._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
+        self._conf["jlink_path"] = jlink_path
+        self._conf["jlink_lib_name"] = jlink_lib_name
+        self._conf["jlink_version"] = jlink_version
+        log.info(f'J-LINK local path:     {self._conf["jlink_path"]}')
+        log.info(f'J-LINK local version:  {self._conf["jlink_version"]}')
 
         # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
         # to print, e.g., SWD connection parameters.
-        if 'jlink_interface' not in DottConf.conf:
-            DottConf.conf['jlink_interface'] = 'SWD'
-        log.info(f'J-LINK interface:      {DottConf.conf["jlink_interface"]}')
+        if 'jlink_interface' not in self._conf:
+            self._conf['jlink_interface'] = 'SWD'
+        log.info(f'J-LINK interface:      {self._conf["jlink_interface"]}')
 
-        if 'jlink_speed' not in DottConf.conf:
-            DottConf.conf['jlink_speed'] = '15000'
-        log.info(f'J-LINK speed (set):    {DottConf.conf["jlink_speed"]}')
+        if 'jlink_speed' not in self._conf:
+            self._conf['jlink_speed'] = '15000'
+        log.info(f'J-LINK speed (set):    {self._conf["jlink_speed"]}')
 
-        if 'jlink_serial' not in DottConf.conf:
-            DottConf.conf['jlink_serial'] = None
-        elif DottConf.conf['jlink_serial'] is not None and DottConf.conf['jlink_serial'].strip() == '':
-            DottConf.conf['jlink_serial'] = None
-        if DottConf.conf['jlink_serial'] is not None:
-            log.info(f'J-LINK serial:         {DottConf.conf["jlink_serial"]}')
+        if 'jlink_serial' not in self._conf:
+            self._conf['jlink_serial'] = None
+        elif self._conf['jlink_serial'] is not None and self._conf['jlink_serial'].strip() == '':
+            self._conf['jlink_serial'] = None
+        if self._conf['jlink_serial'] is not None:
+            log.info(f'J-LINK serial:         {self._conf["jlink_serial"]}')
 
-        if 'jlink_script' not in DottConf.conf:
-            DottConf.conf['jlink_script'] = None
-        if DottConf.conf['jlink_script'] is not None:
-            log.info(f'J-LINK script:         {DottConf.conf["jlink_script"]}')
+        if 'jlink_script' not in self._conf:
+            self._conf['jlink_script'] = None
+        if self._conf['jlink_script'] is not None:
+            log.info(f'J-LINK script:         {self._conf["jlink_script"]}')
 
-        if 'jlink_extconf' not in DottConf.conf:
-            DottConf.conf['jlink_extconf'] = None
-        if DottConf.conf['jlink_extconf'] is not None:
-            log.info(f'J-LINK extra config:   {DottConf.conf["jlink_extconf"]}')
+        if 'jlink_extconf' not in self._conf:
+            self._conf['jlink_extconf'] = None
+        if self._conf['jlink_extconf'] is not None:
+            log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
-        if 'gdb_client_binary' not in DottConf.conf:
+        if 'gdb_client_binary' not in self._conf:
             default_gdb = 'arm-none-eabi-gdb-py'
-            DottConf.conf['gdb_client_binary'] = str(Path(f'{os.environ["DOTTGDBPATH"]}/{default_gdb}'))
-        log.info(f'GDB client binary:     {DottConf.conf["gdb_client_binary"]}')
+            self._conf['gdb_client_binary'] = str(Path(f'{os.environ["DOTTGDBPATH"]}/{default_gdb}'))
+        log.info(f'GDB client binary:     {self._conf["gdb_client_binary"]}')
 
-        if 'gdb_server_addr' not in DottConf.conf:
-            DottConf.conf['gdb_server_addr'] = None
-        elif DottConf.conf['gdb_server_addr'].strip() == '':
-            DottConf.conf['gdb_server_addr'] = None
+        if 'gdb_server_addr' not in self._conf:
+            self._conf['gdb_server_addr'] = None
+        elif self._conf['gdb_server_addr'].strip() == '':
+            self._conf['gdb_server_addr'] = None
         else:
-            DottConf.conf['gdb_server_addr'] = DottConf.conf['gdb_server_addr'].strip()
-        log.info(f'GDB server address:    {DottConf.conf["gdb_server_addr"]}')
+            self._conf['gdb_server_addr'] = self._conf['gdb_server_addr'].strip()
+        log.info(f'GDB server address:    {self._conf["gdb_server_addr"]}')
 
-        if 'gdb_server_port' not in DottConf.conf or DottConf.conf['gdb_server_port'] is None:
-            DottConf.conf['gdb_server_port'] = '2331'
-        elif DottConf.conf['gdb_server_port'].strip() == '':
-            DottConf.conf['gdb_server_port'] = '2331'
-        log.info(f'GDB server port:       {DottConf.conf["gdb_server_port"]}')
+        if 'gdb_server_port' not in self._conf or self._conf['gdb_server_port'] is None:
+            self._conf['gdb_server_port'] = '2331'
+        elif self._conf['gdb_server_port'].strip() == '':
+            self._conf['gdb_server_port'] = '2331'
+        log.info(f'GDB server port:       {self._conf["gdb_server_port"]}')
 
-        if 'jlink_server_addr' not in DottConf.conf or DottConf.conf['jlink_server_addr'] is None:
-            DottConf.conf['jlink_server_addr'] = None
-        elif DottConf.conf['jlink_server_addr'].strip() == '':
-            DottConf.conf['jlink_server_addr'] = None
-        if DottConf.conf["jlink_server_addr"] != None:
-            log.info(f'JLINK server address:  {DottConf.conf["jlink_server_addr"]}')
+        if 'jlink_server_addr' not in self._conf or self._conf['jlink_server_addr'] is None:
+            self._conf['jlink_server_addr'] = None
+        elif self._conf['jlink_server_addr'].strip() == '':
+            self._conf['jlink_server_addr'] = None
+        if self._conf["jlink_server_addr"] is not None:
+            log.info(f'JLINK server address:  {self._conf["jlink_server_addr"]}')
 
-        if 'jlink_server_port' not in DottConf.conf or DottConf.conf['jlink_server_port'] is None:
-            DottConf.conf['jlink_server_port'] = '19020'
-        elif DottConf.conf['jlink_server_port'].strip() == '':
-            DottConf.conf['jlink_server_port'] = '19020'
-        if DottConf.conf["jlink_server_port"] != '19020':
-            log.info(f'JLINK server port:     {DottConf.conf["jlink_server_port"]}')
-        if DottConf.conf['gdb_server_addr'] is None:
+        if 'jlink_server_port' not in self._conf or self._conf['jlink_server_port'] is None:
+            self._conf['jlink_server_port'] = '19020'
+        elif self._conf['jlink_server_port'].strip() == '':
+            self._conf['jlink_server_port'] = '19020'
+        if self._conf["jlink_server_port"] != '19020':
+            log.info(f'JLINK server port:     {self._conf["jlink_server_port"]}')
+        if self._conf['gdb_server_addr'] is None:
             # no (remote) GDB server address given. try to find a local GDB server binary to launch instead
 
-            if 'gdb_server_binary' in DottConf.conf:
-                if not os.path.exists(DottConf.conf['gdb_server_binary']):
-                    raise Exception(f'GDB server binary {DottConf.conf["gdb_server_binary"]} ({dott_ini}) not found!')
+            if 'gdb_server_binary' in self._conf:
+                if not os.path.exists(self._conf['gdb_server_binary']):
+                    raise Exception(f'GDB server binary {self._conf["gdb_server_binary"]} ({self._dott_ini}) not found!')
             elif os.path.exists(jlink_path):
-                DottConf.conf['gdb_server_binary'] = str(Path(f'{jlink_path}/{jlink_gdb_server_binary}'))
+                self._conf['gdb_server_binary'] = str(Path(f'{jlink_path}/{jlink_gdb_server_binary}'))
             else:
                 # As a last option we check if the GDB server binary is in PATH
                 try:
                     subprocess.check_call((jlink_gdb_server_binary, '-device'))
                 except subprocess.CalledProcessError:
                     # Segger gdb server exists and responded with an error since no device was specified
-                    DottConf.conf['gdb_server_binary'] = jlink_gdb_server_binary
+                    self._conf['gdb_server_binary'] = jlink_gdb_server_binary
                 except Exception as ex:
-                    raise Exception(f'GDB server binary {jlink_gdb_server_binary} not found! Checked {dott_ini}, '
+                    raise Exception(f'GDB server binary {jlink_gdb_server_binary} not found! Checked {self._dott_ini}, '
                                     'default location and PATH. Giving up.') from None
-            log.info(f'GDB server binary:     {DottConf.conf["gdb_server_binary"]}')
+            log.info(f'GDB server binary:     {self._conf["gdb_server_binary"]}')
         else:
             log.info('GDB server assumed to be already running (not started by DOTT).')
-            DottConf.conf['gdb_server_binary'] = None
+            self._conf['gdb_server_binary'] = None
 
         default_mem_model: TargetMemModel = TargetMemModel.TESTHOOK
-        if 'on_target_mem_model' not in DottConf.conf:
-            DottConf.conf['on_target_mem_model'] = default_mem_model
+        if 'on_target_mem_model' not in self._conf:
+            self._conf['on_target_mem_model'] = default_mem_model
         else:
-            DottConf.conf['on_target_mem_model'] = str(DottConf.conf['on_target_mem_model']).upper()
-            if DottConf.conf['on_target_mem_model'] not in TargetMemModel.get_keys():
-                log.warn(f'On-target memory model ({DottConf.conf["on_target_mem_model"]}) from {dott_ini} is unknown. '
+            self._conf['on_target_mem_model'] = str(self._conf['on_target_mem_model']).upper()
+            if self._conf['on_target_mem_model'] not in TargetMemModel.get_keys():
+                log.warn(f'On-target memory model ({self._conf["on_target_mem_model"]}) from {self._dott_ini} is unknown. '
                          f'Falling back to default.')
-                DottConf.conf['on_target_mem_model'] = default_mem_model
+                self._conf['on_target_mem_model'] = default_mem_model
             else:
-                DottConf.conf['on_target_mem_model'] = TargetMemModel[DottConf.conf['on_target_mem_model']]
+                self._conf['on_target_mem_model'] = TargetMemModel[self._conf['on_target_mem_model']]
 
         on_target_mem_prestack_alloc_size: int = 256
-        if 'on_target_mem_prestack_alloc_size' in DottConf.conf:
-            if str(DottConf.conf['on_target_mem_prestack_alloc_size']).strip() != '':
-                on_target_mem_prestack_alloc_size = int(DottConf.conf['on_target_mem_prestack_alloc_size'])
-        DottConf.conf['on_target_mem_prestack_alloc_size'] = on_target_mem_prestack_alloc_size
+        if 'on_target_mem_prestack_alloc_size' in self._conf:
+            if str(self._conf['on_target_mem_prestack_alloc_size']).strip() != '':
+                on_target_mem_prestack_alloc_size = int(self._conf['on_target_mem_prestack_alloc_size'])
+        self._conf['on_target_mem_prestack_alloc_size'] = on_target_mem_prestack_alloc_size
 
         on_target_mem_prestack_alloc_location: str = 'Reset_Handler'
-        if 'on_target_mem_prestack_alloc_location' in DottConf.conf:
-            if str(DottConf.conf['on_target_mem_prestack_alloc_location']).strip() != '':
-                on_target_mem_prestack_alloc_location = str(DottConf.conf['on_target_mem_prestack_alloc_location'])
-        DottConf.conf['on_target_mem_prestack_alloc_location'] = on_target_mem_prestack_alloc_location
+        if 'on_target_mem_prestack_alloc_location' in self._conf:
+            if str(self._conf['on_target_mem_prestack_alloc_location']).strip() != '':
+                on_target_mem_prestack_alloc_location = str(self._conf['on_target_mem_prestack_alloc_location'])
+        self._conf['on_target_mem_prestack_alloc_location'] = on_target_mem_prestack_alloc_location
 
         on_target_mem_prestack_halt_location: str = 'main'
-        if 'on_target_mem_prestack_halt_location' in DottConf.conf:
-            if str(DottConf.conf['on_target_mem_prestack_halt_location']).strip() != '':
-                on_target_mem_prestack_halt_location = str(DottConf.conf['on_target_mem_prestack_halt_location'])
-        DottConf.conf['on_target_mem_prestack_halt_location'] = on_target_mem_prestack_halt_location
+        if 'on_target_mem_prestack_halt_location' in self._conf:
+            if str(self._conf['on_target_mem_prestack_halt_location']).strip() != '':
+                on_target_mem_prestack_halt_location = str(self._conf['on_target_mem_prestack_halt_location'])
+        self._conf['on_target_mem_prestack_halt_location'] = on_target_mem_prestack_halt_location
 
-        on_target_mem_prestack_total_stack_size: int = None
-        if 'on_target_mem_prestack_total_stack_size' in DottConf.conf:
-            if str(DottConf.conf['on_target_mem_prestack_total_stack_size']).strip() != '':
-                on_target_mem_prestack_total_stack_size = int(DottConf.conf['on_target_mem_prestack_total_stack_size'])
-        DottConf.conf['on_target_mem_prestack_total_stack_size'] = on_target_mem_prestack_total_stack_size
+        on_target_mem_prestack_total_stack_size: int = 0
+        if 'on_target_mem_prestack_total_stack_size' in self._conf:
+            if str(self._conf['on_target_mem_prestack_total_stack_size']).strip() != '':
+                on_target_mem_prestack_total_stack_size = int(self._conf['on_target_mem_prestack_total_stack_size'])
+        self._conf['on_target_mem_prestack_total_stack_size'] = on_target_mem_prestack_total_stack_size
 
-        if DottConf.conf['on_target_mem_model'] == TargetMemModel.PRESTACK:
-            log.info(f'Std. target mem model for DOTT default fixtures:  {DottConf.conf["on_target_mem_model"]} '
+        if self._conf['on_target_mem_model'] == TargetMemModel.PRESTACK:
+            log.info(f'Std. target mem model for DOTT default fixtures:  {self._conf["on_target_mem_model"]} '
                  f'({on_target_mem_prestack_alloc_size}bytes '
                  f'@{on_target_mem_prestack_alloc_location}; '
                  f'halt @{on_target_mem_prestack_halt_location}; '
                  f'total stack: {on_target_mem_prestack_total_stack_size if on_target_mem_prestack_total_stack_size is not None else "unknown"})')
         else:
-            log.info(f'Std. target mem model for DOTT default fixtures:  {DottConf.conf["on_target_mem_model"]}')
+            log.info(f'Std. target mem model for DOTT default fixtures:  {self._conf["on_target_mem_model"]}')
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Global, static DottConf that is used as default for single-target test environments. This was the standard way to
+# configure DOTT prior to the introduction of the non-Static DottConfExt.
+class DottConf(object):
+    conf = DottConfExt()
+
+    @staticmethod
+    def set(key: str, val: str) -> None:
+        DottConf.conf.set(key, val)
+
+    @staticmethod
+    def set_runtime_if_unset(dott_runtime_path: str) -> None:
+        DottConf.conf.set_runtime_if_unset(dott_runtime_path)
+
+    @staticmethod
+    def get(key: str):
+        return DottConf.conf.get(key)
+
+    @staticmethod
+    def parse_config(force_reparse: bool = False) -> None:
+        return DottConf.conf.parse_config(force_reparse)
