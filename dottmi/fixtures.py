@@ -353,5 +353,4 @@ def pytest_configure(config):
 
 
 def pytest_collection_finish():
-    DottConf.parse_config()
     dott()

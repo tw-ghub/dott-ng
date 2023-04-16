@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from dottmi.target_mem import TargetMem
 
 from dottmi.breakpointhandler import BreakpointHandler
-from dottmi.dott import DottConf
 from dottmi.dottexceptions import DottException
 from dottmi.gdb import GdbClient, GdbServer
 from dottmi.gdb_mi import NotifySubscriber
@@ -43,7 +42,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, auto_connect: bool = True) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, device_endianes: str, auto_connect: bool = True) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
@@ -54,6 +53,7 @@ class Target(NotifySubscriber):
         self._symbol_elf_file_name = None
 
         self._device_name: str = device_name
+        self._device_endianes: str = device_endianes
         self._gdb_client: GdbClient = gdb_client
         self._gdb_server: GdbServer = gdb_server
         self._monitor: Monitor = monitor
@@ -215,7 +215,7 @@ class Target(NotifySubscriber):
 
     @property
     def byte_order(self) -> str:
-        return DottConf.get('device_endianess')
+        return self._device_endianes
 
     @property
     def startup_delay(self) -> float:

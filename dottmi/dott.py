@@ -168,7 +168,7 @@ class Dott(object):
 
         try:
             # create target instance and set GDB server address
-            target = target.Target(gdb_server, gdb_client, monitor, device_name)
+            target = target.Target(gdb_server, gdb_client, monitor, device_name,  DottConf.get('device_endianess'))
 
         except TimeoutError:
             gdb_client.disconnect()
