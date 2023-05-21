@@ -253,7 +253,7 @@ def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types
     if pc is not None:
         dt.eval(f'$pc = *{pc}')
 
-    # if a callback was specified give user code a chance to to early device initialization
+    # if a callback was specified give user code a chance to do early device initialization
     if setup_cb is not None:
         setup_cb()
 
