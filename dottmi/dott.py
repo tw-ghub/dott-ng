@@ -168,12 +168,13 @@ class Dott(object):
 
         try:
             # create target instance and set GDB server address
-            target = target.Target(gdb_server, gdb_client, monitor, device_name,  DottConf.get('device_endianess'))
+            target = target.Target(gdb_server, gdb_client, monitor, device_name,  DottConf.get('device_endianess'), DottConf.get('gdb_server_connect_timeout'))
 
         except TimeoutError:
             gdb_client.disconnect()
             gdb_server.shutdown()
-            target = None
+            raise DottException('Connection attempt to GDB server timed out. Either GDB server is not running or GDB server is slow.'
+                                'In that case, try to increase DottConf[gdb_server_connect_timeout]') from None
 
         # add target to list of created targets to enable proper cleanup on shutdown
         if target:

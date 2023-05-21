@@ -312,6 +312,11 @@ class DottConfExt(object):
             self._conf['gdb_server_port'] = '2331'
         log.info(f'GDB server port:       {self._conf["gdb_server_port"]}')
 
+        if 'gdb_server_connect_timeout' not in self._conf or self._conf['gdb_server_connect_timeout'] is None:
+            self._conf['gdb_server_connect_timeout'] = '5'
+        elif self._conf['gdb_server_connect_timeout'].strip() == '':
+            self._conf['gdb_server_connect_timeout'] = '5'
+
         if 'jlink_server_addr' not in self._conf or self._conf['jlink_server_addr'] is None:
             self._conf['jlink_server_addr'] = None
         elif self._conf['jlink_server_addr'].strip() == '':

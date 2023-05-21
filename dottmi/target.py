@@ -42,7 +42,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, device_endianes: str, auto_connect: bool = True) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, device_endianes: str, auto_connect: bool = True, connect_timeout: float = 5) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
@@ -89,12 +89,12 @@ class Target(NotifySubscriber):
 
         if auto_connect:
             try:
-                self.gdb_client_connect()
+                self.gdb_client_connect(connect_timeout)
             except Exception as ex:
                 self._bp_handler.stop()
                 raise ex
 
-    def gdb_client_connect(self) -> None:
+    def gdb_client_connect(self, timeout: float) -> None:
         """
         Connects the GDB client instance to the GDB server.
         """
@@ -105,7 +105,7 @@ class Target(NotifySubscriber):
 
         try:
             self.exec('-gdb-set mi-async on', timeout=5)
-            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout)
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)
         except Exception as ex:
             raise ex
