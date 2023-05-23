@@ -94,7 +94,7 @@ class Target(NotifySubscriber):
                 self._bp_handler.stop()
                 raise ex
 
-    def gdb_client_connect(self, timeout: float) -> None:
+    def gdb_client_connect(self, timeout: float = 5) -> None:
         """
         Connects the GDB client instance to the GDB server.
         """
