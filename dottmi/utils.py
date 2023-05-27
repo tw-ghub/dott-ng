@@ -459,7 +459,7 @@ class BlockingDict(object):
             self._items[key] = value
             self._cv.notify_all()
 
-    def pop(self, key, timeout: float =None):
+    def pop(self, key, timeout: float = None):
         with self._cv:
             while key not in self._items:
                 new_item = self._cv.wait(timeout)

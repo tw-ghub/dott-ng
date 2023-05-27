@@ -84,17 +84,20 @@ class Target(NotifySubscriber):
         # delay after device startup / continue
         self._startup_delay: float = 0.0
 
+        # timeout used when connection to remote GDB server ("target remote")
+        self._connect_timeout: float = connect_timeout
+
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False
 
         if auto_connect:
             try:
-                self.gdb_client_connect(connect_timeout)
+                self.gdb_client_connect()
             except Exception as ex:
                 self._bp_handler.stop()
                 raise ex
 
-    def gdb_client_connect(self, timeout: float = 5) -> None:
+    def gdb_client_connect(self) -> None:
         """
         Connects the GDB client instance to the GDB server.
         """
@@ -105,7 +108,7 @@ class Target(NotifySubscriber):
 
         try:
             self.exec('-gdb-set mi-async on', timeout=5)
-            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout)
+            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', self._connect_timeout)
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)
         except Exception as ex:
             raise ex

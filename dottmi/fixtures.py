@@ -128,7 +128,7 @@ def _target_mem_init_noalloc(dt: Target = None) -> None:
     bp = HaltPoint('main')
     dt.cont()
     try:
-        bp.wait_complete(timeout=5)
+        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
     except Exception:
         dt.halt()
         log.warn('main not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
@@ -154,7 +154,7 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
     bp = HaltPoint('DOTT_test_hook_chained')
     dt.cont()
     try:
-        bp.wait_complete(timeout=5)
+        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
     except Exception:
         dt.halt()
         log.warn('DOTT_test_hook_chained not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
@@ -212,7 +212,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
     bp = HaltPoint(alloc_location)
     dt.cont()
     try:
-        bp.wait_complete(timeout=5)
+        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
     except Exception:
         dt.halt()
         log.warn(f'{alloc_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
@@ -229,7 +229,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
     bp = HaltPoint(halt_location)
     dt.cont()
     try:
-        bp.wait_complete(timeout=5)
+        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
     except Exception:
         dt.halt()
         log.warn(f'{halt_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
