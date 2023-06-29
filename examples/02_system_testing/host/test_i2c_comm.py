@@ -60,28 +60,35 @@ class TestI2cCommunication(object):
     # \amsTestResp Addition result on target shall match the expected one.
     # \amsTestType System
     # \amsTestReqs RS_0220, RS_0110, RS_0400, RS_0410
-    def test_CmdAdd(self, target_load, target_reset, i2c_comm):
-        hp = HaltPoint(DOTT_LABEL('CMD_ADD_EXIT'))
+    def test_TargetCmdAdd(self, target_load, target_reset, i2c_comm):
+        dt = dott().target
 
-        a = 78231231
-        b = 12345678
+        cmd_id: int = 0x10
+        a: int = 78231231
+        b: int = 12345678
+        cmd_id_bytes: bytes = DottConvert.uint8_to_bytes(cmd_id)
         a_bytes = DottConvert.uint32_to_bytes(a)
         b_bytes = DottConvert.uint32_to_bytes(b)
 
+        # wait until firmware has booted
         hp_app = HaltPoint('app_main', temporary=True)
-        dott().target.cont()
+        dt.cont()
         hp_app.wait_complete()
 
-        dott().target.cont()
-        i2c_comm.pi.i2c_write_device(i2c_comm.dev, [0x10, *a_bytes, *b_bytes])
+        hp_add = HaltPoint(DOTT_LABEL('CMD_ADD_EXIT'))
 
-        hp.wait_complete(timeout=4)
-        deser_a = dott().target.eval('a')
-        deser_b = dott().target.eval('b')
+        # firmware has booted. let it run and send I2C command
+        dt.cont()
+        i2c_comm.pi.i2c_write_device(i2c_comm.dev, [*cmd_id_bytes, *a_bytes, *b_bytes])
+
+        # check if data was correctly received and de-serialized by target firmware
+        hp_add.wait_complete(timeout=4)
+        deser_a = dt.eval('a')
+        deser_b = dt.eval('b')
         assert (a == deser_a), 'deserialized data on target does not match sent data'
         assert (b == deser_b), 'deserialized data on target does not match sent data'
 
-        sum = dott().target.eval('sum')
+        sum = dt.eval('sum')
         assert ((a + b) == sum), 'sum does not match expected value'
 
     ##
