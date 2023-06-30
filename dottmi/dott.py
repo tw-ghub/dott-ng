@@ -69,46 +69,7 @@ class Dott(object):
 
         self._default_target = self.create_target(DottConf.conf['device_name'], DottConf.conf['jlink_serial'])
 
-    def create_gdb_server(self, device_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
-        """
-        Factory method to create a new GDB server instance. The following parameters are defined via DottConfig:
-        gdb_server_binary, jlink_interface, device_endianess, jlink_speed, and jlink_server_addr.
-
-        Args:
-            device_name: Device name as used by debug monitor to identify corresponding flash loader algorithm.
-            jlink_serial: JLINK serial number (None when only a single JLINK is connected).
-            srv_addr: Server address (None for default).
-            srv_port: Port the server shall listen on (-1 for default).
-        Returns:
-            The created GdbServer instance.
-        """
-        from dottmi.gdb import GdbServerJLink
-
-        if srv_port == -1:
-            srv_port = int(DottConf.conf['gdb_server_port'])
-
-        if srv_addr is None:
-            srv_addr = DottConf.conf['gdb_server_addr']
-
-        if srv_addr is None:
-            # if gdb server is launched by DOTT, we determine the port ourselves
-            srv_port = utils.Network.get_next_srv_port('127.0.0.1')
-
-        gdb_server = GdbServerJLink(DottConf.conf['gdb_server_binary'],
-                                    srv_addr,
-                                    srv_port,
-                                    device_name,
-                                    DottConf.conf['jlink_interface'],
-                                    DottConf.conf['device_endianess'],
-                                    DottConf.conf['jlink_speed'],
-                                    jlink_serial,
-                                    DottConf.conf['jlink_server_addr'],
-                                    DottConf.conf['jlink_script'],
-                                    DottConf.conf['jlink_extconf'])
-
-        return gdb_server
-
-    def create_target(self, device_name: str, jlink_serial: str = None) -> Target:
+    def create_target(self, device_name: str) -> Target:
         from dottmi import target
         from dottmi.gdb import GdbClient
 
