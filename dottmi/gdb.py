@@ -57,6 +57,23 @@ class GdbServer(ABC):
         pass
 
 
+class GdbServerExternal(GdbServer):
+    """
+    This class represents an external (typically remote) GDB server instance. It is not started or managed by DOTT.
+    Management of this GDB server instance is handled externally.
+    """
+    def __init__(self, addr, port):
+        super().__init__(addr, port)
+
+    def _launch(self, device_name: str):
+        # remote GDB server instances are not managed by DOTT
+        pass
+
+    def shutdown(self):
+        # remote GDB server instances are not managed by DOTT
+        pass
+
+
 class GdbServerJLink(GdbServer):
     def __init__(self, gdb_svr_binary: str, addr: str, port: int, device_name: str, interface: str, endian: str,
                  speed: str = '15000', serial_number: str = None, jlink_addr: str = None, jlink_script: str = None,
