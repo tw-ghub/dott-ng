@@ -147,7 +147,7 @@ class MonitorJLink(Monitor):
 
 
 class MonitorOpenOCD(Monitor):
-    def _instantiate_gdb_server(self):
+    def _instantiate_gdb_server(self, dconf: DottConf):
         raise NotImplementedError('Automatic starting of OpenOCD GDB server is not supported. Provide "gdb_server_addr" and "gdb_server_addr" '
                                   'config parameters to connect to an externally started/remote GDB server instance.')
 
