@@ -20,12 +20,13 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 
 import typing
 
+from dottmi import utils
 from dottmi.dott_conf import DottConf
+from dottmi.gdb import GdbServer
 
 if typing.TYPE_CHECKING:
     from dottmi.target import Target
 
-import socket
 import types
 from typing import List
 
@@ -68,46 +69,6 @@ class Dott(object):
 
         self._default_target = self.create_target(DottConf.conf['device_name'], DottConf.conf['jlink_serial'])
 
-    def _get_next_srv_port(self, srv_addr: str) -> int:
-        """
-        Find the next triplet of free ("bind-able") TCP ports on the given server IP address.
-        Ports are automatically advanced until a free port triplet is found.
-
-        Args:
-            srv_addr: IP address of the server.
-        Returns:
-            Returns the first port number of the discovered, free port triplet.
-        """
-        port = self._next_gdb_srv_port
-        sequentially_free_ports = 0
-        start_port = 0
-
-        while True:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                s.bind((srv_addr, port))
-                sequentially_free_ports += 1
-                if sequentially_free_ports == 1:
-                    start_port = port
-            except socket.error:
-                # log.debug(f'Can not bind port {port} as it is already in use.')
-                sequentially_free_ports = 0
-            finally:
-                s.close()
-
-            if sequentially_free_ports > 2:
-                # JLINK GDB server needs 3 free ports in a row
-                break
-
-            port += 1
-            if port >= 65535:
-                raise DottException(f'Unable do find three (consecutive) free ports for IP {srv_addr}!')
-
-        self._next_gdb_srv_port = start_port + sequentially_free_ports
-        if self._next_gdb_srv_port > 65500:
-            self._next_gdb_srv_port = int(DottConf.conf['gdb_server_port'])
-        return start_port
-
     def create_gdb_server(self, device_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
         """
         Factory method to create a new GDB server instance. The following parameters are defined via DottConfig:
@@ -131,7 +92,7 @@ class Dott(object):
 
         if srv_addr is None:
             # if gdb server is launched by DOTT, we determine the port ourselves
-            srv_port = self._get_next_srv_port('127.0.0.1')
+            srv_port = utils.Network.get_next_srv_port('127.0.0.1')
 
         gdb_server = GdbServerJLink(DottConf.conf['gdb_server_binary'],
                                     srv_addr,
@@ -151,20 +112,18 @@ class Dott(object):
         from dottmi import target
         from dottmi.gdb import GdbClient
 
-        srv_addr = DottConf.conf['gdb_server_addr']
-
-        gdb_server = self.create_gdb_server(device_name, jlink_serial, srv_addr=srv_addr)
-
-        # start GDB client
-        gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
-        gdb_client.connect()
-
         if DottConf.get('monitor_type') == 'jlink':
             monitor: Monitor = MonitorJLink()
         elif DottConf.get('monitor_type') == 'openocd':
             monitor: Monitor = MonitorOpenOCD()
         else:
             raise DottException(f'Unknown debug monitor type {DottConf.get("monitor_type")}.')
+
+        gdb_server: GdbServer = monitor.create_gdb_server(DottConf())
+
+        # start GDB client
+        gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
+        gdb_client.connect()
 
         try:
             # create target instance and set GDB server address
