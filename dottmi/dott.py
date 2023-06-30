@@ -67,7 +67,7 @@ class Dott(object):
         # Hook called before the first debugger connection is made
         DottHooks.exec_pre_connect_hook()
 
-        self._default_target = self.create_target(DottConf.conf['device_name'], DottConf.conf['jlink_serial'])
+        self._default_target = self.create_target(DottConf.conf['device_name'])
 
     def create_target(self, device_name: str) -> Target:
         from dottmi import target
