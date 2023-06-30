@@ -21,6 +21,8 @@ import struct
 import threading
 from typing import Union, List
 
+from dottmi.dottexceptions import DottException
+
 log = logging.getLogger('DOTT')
 
 
@@ -468,3 +470,52 @@ class BlockingDict(object):
                     raise TimeoutError
 
             return self._items.pop(key)
+
+
+class Network(object):
+
+    _next_gdb_srv_port: int = 2331
+
+    @classmethod
+    def get_next_srv_port(cls, srv_addr: str) -> int:
+        """
+        Find the next triplet of free ("bind-able") TCP ports on the given server IP address.
+        Ports are automatically advanced until a free port triplet is found.
+
+        Args:
+            srv_addr: IP address of the server.
+        Returns:
+            Returns the first port number of the discovered, free port triplet.
+        """
+        import socket
+
+        port = cls._next_gdb_srv_port
+        sequentially_free_ports = 0
+        start_port = 0
+
+        while True:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.bind((srv_addr, port))
+                sequentially_free_ports += 1
+                if sequentially_free_ports == 1:
+                    start_port = port
+            except socket.error:
+                # log.debug(f'Can not bind port {port} as it is already in use.')
+                sequentially_free_ports = 0
+            finally:
+                s.close()
+
+            if sequentially_free_ports > 2:
+                # found 3 free ports in a row
+                break
+
+            port += 1
+            if port >= 65535:
+                raise DottException(f'Unable do find three (consecutive) free ports for IP {srv_addr}!')
+
+        cls._next_gdb_srv_port = start_port + sequentially_free_ports
+        if cls._next_gdb_srv_port > 65500:
+            # wrap around for next invocation
+            cls._next_gdb_srv_port = 2331
+        return start_port
