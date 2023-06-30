@@ -410,6 +410,24 @@ class DottConfExt(object):
 class DottConf(object):
     conf = DottConfExt()
 
+    class keys(object):
+        # GDB server connection parameters
+        gdb_server_addr: str = 'gdb_server_addr'
+        gdb_server_port: str = 'gdb_server_port'
+        gdb_server_binary: str = 'gdb_server_binary'
+
+        # Device properties
+        device_name: str = 'device_name'
+        device_endianess: str = 'device_endianess'
+
+        # JLINK-specific settings
+        jlink_interface: str = 'jlink_interface'
+        jlink_speed: str = 'jlink_speed'
+        jlink_serial: str = 'jlink_serial'
+        jlink_server_addr: str = 'jlink_server_addr'
+        jlink_script: str = 'jlink_script'
+        jlink_extconf: str = 'jlink_extconf'
+
     @staticmethod
     def set(key: str, val: str) -> None:
         DottConf.conf.set(key, val)
@@ -425,3 +443,9 @@ class DottConf(object):
     @staticmethod
     def parse_config(force_reparse: bool = False) -> None:
         return DottConf.conf.parse_config(force_reparse)
+
+    @staticmethod
+    def log(key, val):
+        key += ':'
+        log.info(f'{key:25} {val}')
+
