@@ -37,15 +37,38 @@ from dottmi.utils import log_setup, singleton
 
 class DottHooks(object):
     _pre_connect_hook: types.FunctionType = None
+    _gdb_pre_connect_hook: types.FunctionType = None
 
     @classmethod
     def set_pre_connect_hook(cls, pre_connect_hook: types.FunctionType) -> None:
+        """
+        This hook is called before the target instance is created. Neither a GDB server nor a GDB client instance exist at this point.
+
+        Args:
+            pre_connect_hook: Callback function.
+        """
         cls._pre_connect_hook = pre_connect_hook
 
     @classmethod
     def exec_pre_connect_hook(cls) -> None:
         if cls._pre_connect_hook is not None:
             cls._pre_connect_hook()
+
+    @classmethod
+    def set_gdb_pre_connect_hook(cls, gdb_pre_connect_hook: types.FunctionType) -> None:
+        """
+        This hook is called after the GDB client process is instantiated but before the connection to the GDB server is established.
+        This gives the possibility to adapt GDB client connection settings (e.g., "remotetimeout" or "tcp connect-timeout").
+
+        Args:
+            gdb_pre_connect_hook: Callback function.
+        """
+        cls._gdb_pre_connect_hook = gdb_pre_connect_hook
+
+    @classmethod
+    def exec_gdb_pre_connect_hook(cls) -> None:
+        if cls._gdb_pre_connect_hook is not None:
+            cls._gdb_pre_connect_hook()
 
 # ----------------------------------------------------------------------------------------------------------------------
 @singleton
@@ -73,10 +96,20 @@ class Dott(object):
         from dottmi import target
         from dottmi.gdb import GdbClient
 
-        if DottConf.get('monitor_type') == 'jlink':
+        dconf = DottConf()
+        monitor_type = dconf.get(dconf.keys.monitor_type)
+
+        if monitor_type == 'jlink':
             monitor: Monitor = MonitorJLink()
-        elif DottConf.get('monitor_type') == 'openocd':
+        elif monitor_type == 'openocd':
             monitor: Monitor = MonitorOpenOCD()
+        elif monitor_type == 'custom':
+            try:
+                import importlib
+                monitor_cls = getattr(importlib.import_module(dconf.get(dconf.keys.monitor_module)), dconf.get(dconf.keys.monitor_class))
+                monitor: Monitor = monitor_cls()
+            except:
+                raise DottException(f'Failed to instantiate {dconf.get(dconf.keys.monitor_module)}::{dconf.get(dconf.keys.monitor_class)}') from None
         else:
             raise DottException(f'Unknown debug monitor type {DottConf.get("monitor_type")}.')
 
@@ -84,6 +117,8 @@ class Dott(object):
 
         # start GDB client
         gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
+        # Hook called before connection to GDB server is established.
+        DottHooks.exec_gdb_pre_connect_hook()
         gdb_client.connect()
 
         try:

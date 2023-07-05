@@ -247,15 +247,28 @@ class DottConfExt(object):
             self._conf['device_endianess'] = 'little'
         else:
             if self._conf['device_endianess'] != 'little' and self._conf['device_endianess'] != 'big':
-                raise ValueError(f'device_endianess in {dott_ini} should be either "little" or "big".')
+                raise ValueError(f'device_endianess should be either "little" or "big".')
         log.info(f'Device endianess:      {self._conf["device_endianess"]}')
 
         if 'monitor_type' not in self._conf:
             self._conf['monitor_type'] = 'jlink'
         else:
-            self._conf['monitor_type'] = self._conf['monitor_type'].strip().lower()
             if self._conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
-                raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd"')
+
+                # Check if monitor type is of format my.module.path.MyMonitorClass; if yes populate monitor_module and monitor_class confif values
+                # In this case, monitor_type is set to 'custom'.
+                if '.' in self._conf['monitor_type'].strip():
+                    parts = self._conf['monitor_type'].split('.')
+                    if len(parts) > 0:
+                        self._conf['monitor_class'] = parts[-1]
+                    if len(parts) > 1:
+                        self._conf['monitor_module'] = '.'.join(parts[0:-1])
+                    else:
+                        self._conf['monitor_module'] = None
+                    self._conf['monitor_type'] = 'custom'
+
+                else:
+                    raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd" or "my.module.path.MyMonitorClass"')
         log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()}')
 
         # determine J-Link path and version
@@ -415,6 +428,11 @@ class DottConf(object):
         gdb_server_addr: str = 'gdb_server_addr'
         gdb_server_port: str = 'gdb_server_port'
         gdb_server_binary: str = 'gdb_server_binary'
+
+        # Debug monitor variants
+        monitor_type: str = 'monitor_type'
+        monitor_module: str = 'monitor_module'
+        monitor_class: str = 'monitor_class'
 
         # Device properties
         device_name: str = 'device_name'
