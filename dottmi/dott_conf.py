@@ -425,9 +425,11 @@ class DottConf(object):
 
     class keys(object):
         # GDB server connection parameters
+        gdb_client_binary: str = 'gdb_client_binary'
         gdb_server_addr: str = 'gdb_server_addr'
         gdb_server_port: str = 'gdb_server_port'
         gdb_server_binary: str = 'gdb_server_binary'
+        gdb_server_connect_timeout: str = 'gdb_server_connect_timeout'
 
         # Debug monitor variants
         monitor_type: str = 'monitor_type'
@@ -445,6 +447,10 @@ class DottConf(object):
         jlink_server_addr: str = 'jlink_server_addr'
         jlink_script: str = 'jlink_script'
         jlink_extconf: str = 'jlink_extconf'
+
+        # Misc settings
+        on_target_mem_model: str = 'on_target_mem_model'
+        fixture_timeout: str = 'fixture_timeout'
 
     @staticmethod
     def set(key: str, val: str) -> None:

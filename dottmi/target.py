@@ -25,6 +25,8 @@ import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
+from dottmi.dott_conf import DottConf
+
 if TYPE_CHECKING:
     from dottmi.target_mem import TargetMem
 
@@ -42,18 +44,19 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, device_endianes: str, auto_connect: bool = True, connect_timeout: float = 5) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: DottConf, auto_connect: bool = True) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
         If auto_connect is True (the default) the connected from GDB client to GDB server is automatically established.
         """
         NotifySubscriber.__init__(self)
+        self._dconf: DottConf = dconf
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
 
-        self._device_name: str = device_name
-        self._device_endianes: str = device_endianes
+        self._device_name: str = dconf.get(dconf.keys.device_name)
+        self._device_endianess: str = dconf.get(dconf.keys.device_endianess)
         self._gdb_client: GdbClient = gdb_client
         self._gdb_server: GdbServer = gdb_server
         self._monitor: Monitor = monitor
@@ -85,7 +88,7 @@ class Target(NotifySubscriber):
         self._startup_delay: float = 0.0
 
         # timeout used when connection to remote GDB server ("target remote")
-        self._connect_timeout: float = connect_timeout
+        self._connect_timeout: float = float(dconf.get(dconf.keys.gdb_server_connect_timeout))
 
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False
@@ -185,7 +188,11 @@ class Target(NotifySubscriber):
     # Properties
 
     @property
-    def gdb_client(self):
+    def dconf(self) -> DottConf:
+        return self._dconf
+
+    @property
+    def gdb_client(self) -> GdbClient:
         return self._gdb_client
 
     @property
@@ -203,7 +210,7 @@ class Target(NotifySubscriber):
         return self._mem
 
     @mem.setter
-    def mem(self, target_mem: TargetMem):
+    def mem(self, target_mem: TargetMem) -> None:
         if not isinstance(target_mem, TargetMem):
             raise DottException('mem has to be an instance of TargetMem')
         self._mem = target_mem
@@ -218,7 +225,7 @@ class Target(NotifySubscriber):
 
     @property
     def byte_order(self) -> str:
-        return self._device_endianes
+        return self._device_endianess
 
     @property
     def startup_delay(self) -> float:

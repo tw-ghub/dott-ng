@@ -121,14 +121,14 @@ def _target_mem_init_noalloc(dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
 
     # print mem model override information
-    if DottConf.conf['on_target_mem_model'] != TargetMemModel.NOALLOC:
+    if dt.dconf.get(dt.dconf.keys.on_target_mem_model) != TargetMemModel.NOALLOC:
         log.info(f'Overriding std. target mem model with {TargetMemModel.NOALLOC}.')
 
     # define the initial test breakpoint, start the target and wait until the breakpoint is reached
     bp = HaltPoint('main')
     dt.cont()
     try:
-        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
+        bp.wait_complete(timeout=float(dt.dconf.get(dt.dconf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
         log.warn('main not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
@@ -147,7 +147,7 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
 
     # print mem model override information
-    if DottConf.conf['on_target_mem_model'] != TargetMemModel.TESTHOOK:
+    if dt.dconf.get(dt.dconf.keys.on_target_mem_model) != TargetMemModel.TESTHOOK:
         log.info(f'Overriding std. target mem model with {TargetMemModel.TESTHOOK}.')
 
     # define the initial test breakpoint, start the target and wait until the breakpoint is reached

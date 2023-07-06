@@ -85,18 +85,17 @@ class Dott(object):
         DottConf.parse_config()
 
         # the port number used by the internal auto port discovery; discovery starts at config's gdb server port
-        self._next_gdb_srv_port: int = int(DottConf.conf['gdb_server_port'])
+        self._next_gdb_srv_port: int = int(DottConf.get(DottConf.keys.gdb_server_port))
 
         # Hook called before the first debugger connection is made
         DottHooks.exec_pre_connect_hook()
 
-        self._default_target = self.create_target(DottConf.conf['device_name'])
+        self._default_target = self.create_target(DottConf())
 
-    def create_target(self, device_name: str) -> Target:
+    def create_target(self, dconf: DottConf) -> Target:
         from dottmi import target
         from dottmi.gdb import GdbClient
 
-        dconf = DottConf()
         monitor_type = dconf.get(dconf.keys.monitor_type)
 
         if monitor_type == 'jlink':
@@ -111,19 +110,19 @@ class Dott(object):
             except:
                 raise DottException(f'Failed to instantiate {dconf.get(dconf.keys.monitor_module)}::{dconf.get(dconf.keys.monitor_class)}') from None
         else:
-            raise DottException(f'Unknown debug monitor type {DottConf.get("monitor_type")}.')
+            raise DottException(f'Unknown debug monitor type {dconf.get(dconf.keys.monitor_type)}.')
 
-        gdb_server: GdbServer = monitor.create_gdb_server(DottConf())
+        gdb_server: GdbServer = monitor.create_gdb_server(dconf)
 
         # start GDB client
-        gdb_client = GdbClient(DottConf.conf['gdb_client_binary'])
+        gdb_client = GdbClient(dconf.get(dconf.keys.gdb_client_binary))
         # Hook called before connection to GDB server is established.
         DottHooks.exec_gdb_pre_connect_hook()
         gdb_client.connect()
 
         try:
             # create target instance and set GDB server address
-            target = target.Target(gdb_server, gdb_client, monitor, device_name,  DottConf.get('device_endianess'), DottConf.get('gdb_server_connect_timeout'))
+            target = target.Target(gdb_server, gdb_client, monitor, dconf)
 
         except TimeoutError:
             gdb_client.disconnect()
