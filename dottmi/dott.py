@@ -74,7 +74,15 @@ class DottHooks(object):
 @singleton
 class Dott(object):
 
-    def __init__(self) -> None:
+    def __init__(self, create_default_target: bool = True) -> None:
+        """
+        Initialize the DOTT framework. Note: This class is a singleton. Hence, repetitive attempts to instantiate this
+        class will return the same singleton instance.
+
+        Args:
+            create_default_target: If True (default) the default target is generated automatically, otherwise this step
+                                   is skipped.
+        """
         self._default_target = None
         self._all_targets: List = []
 
@@ -90,9 +98,19 @@ class Dott(object):
         # Hook called before the first debugger connection is made
         DottHooks.exec_pre_connect_hook()
 
-        self._default_target = self.create_target(DottConf())
+        if create_default_target:
+            self._default_target = self.create_target(DottConf())
 
     def create_target(self, dconf: DottConf) -> Target:
+        """
+        Creates and retunrs a target object according to the settings of the provided DottConf instance.
+
+        Args:
+            dconf: DottConf instance used to configure the target instance.
+
+        Returns:
+            Target instance configured according to dconf.
+        """
         from dottmi import target
         from dottmi.gdb import GdbClient
 
@@ -137,13 +155,28 @@ class Dott(object):
 
     @property
     def target(self) -> Target:
+        """
+        Returns the default target instances via the Dott singleton which is especially useful for single core systems.
+
+        Returns:
+            The default target instance.
+        """
         return self._default_target
 
     @target.setter
-    def target(self, target: object):
+    def target(self, target: object) -> None:
+        """
+        Allows to set (override) the default target for the Dott singleton.
+
+        Args:
+            target: Target instance to be set as default target.
+        """
         raise ValueError('Target can not be set directly.')
 
     def shutdown(self) -> None:
+        """
+        Calls the disconnect method of the default target and all other targets which were created via the create_target() method.
+        """
         for t in self._all_targets:
             t.disconnect()
         self._all_targets = []
