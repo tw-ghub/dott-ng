@@ -47,21 +47,20 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
             log.info(f'Triggering download of APP to {name}...')
 
         # optionally load bootloader binary (load elf ONLY - symbols are loaded after the app)
-        bl_load_elf = DottConf.get('bl_load_elf')
+        bl_load_elf = dt.dconf.get(dt.dconf.keys.bl_load_elf)
         if bl_load_elf is not None:
             dt.load(bl_load_elf, None, enable_flash=load_to_flash)
 
         # load application binaries
-        app_load_elf = DottConf.get('app_load_elf')
-        app_symbol_elf = DottConf.get('app_symbol_elf')
+        app_load_elf = dt.dconf.get(dt.dconf.keys.app_load_elf)
+        app_symbol_elf = dt.dconf.get(dt.dconf.keys.app_symbol_elf)
         if app_load_elf is not None:
             dt.load(app_load_elf, app_symbol_elf, enable_flash=load_to_flash)
 
         # add bootloader symbol file; note: it is important to this 'add' so after doing target.load() with symbol elf.
-        bl_symbol_elf = DottConf.get('bl_symbol_elf')
+        bl_symbol_elf = dt.dconf.get(dt.dconf.keys.bl_symbol_elf)
         if bl_symbol_elf is not None:
-            dt.cli_exec('add-symbol-file %s 0x%x' % (DottConf.get('bl_symbol_elf'),
-                                                                int(DottConf.get('bl_symbol_addr'))))
+            dt.cli_exec('add-symbol-file %s 0x%x' % bl_symbol_elf, int(dt.dconf.get(dt.dconf.keys.bl_symbol_addr)))
 
         # disable FLASH breakpoints
         dt.monitor.enable_flash_breakpoints(False)
@@ -154,7 +153,7 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
     bp = HaltPoint('DOTT_test_hook_chained')
     dt.cont()
     try:
-        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
+        bp.wait_complete(timeout=float(dt.dconf.get(dt.dconf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
         log.warn('DOTT_test_hook_chained not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
@@ -171,11 +170,10 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) -> None:
     dt = dott().target if dt is None else dt
-    canary_word = 0xabad1dea
     override = False
 
     # override default value of on-target memory size
-    target_mem_num_bytes: int = DottConf.conf['on_target_mem_prestack_alloc_size']
+    target_mem_num_bytes: int = dt.dconf.get(dt.dconf.keys.on_target_mem_prestack_alloc_size)
     if mem_model_args is not None and 'alloc_size' in mem_model_args:
         target_mem_num_bytes = int(mem_model_args['alloc_size'])
         override = True
@@ -183,19 +181,19 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
         raise DottException('The num_bytes argument for prestack memory allocation shall be a multiple of 4!')
 
     # override default value for target alloc location
-    alloc_location: str = DottConf.conf['on_target_mem_prestack_alloc_location']
+    alloc_location: str = dt.dconf.get(dt.dconf.keys.on_target_mem_prestack_alloc_location)
     if mem_model_args is not None and 'alloc_location' in mem_model_args:
         alloc_location = str(mem_model_args['alloc_location'])
         override = True
 
     # override default value for target halt location
-    halt_location: str = DottConf.conf['on_target_mem_prestack_halt_location']
+    halt_location: str = dt.dconf.get(dt.dconf.keys.on_target_mem_prestack_halt_location)
     if mem_model_args is not None and 'halt_location' in mem_model_args:
         halt_location = str(mem_model_args['halt_location'])
         override = True
 
     # override default value for target total_stack_size
-    total_stack_num_bytes: int = DottConf.conf['on_target_mem_prestack_total_stack_size']
+    total_stack_num_bytes: int = dt.dconf.get(dt.dconf.keys.on_target_mem_prestack_total_stack_size)
     if mem_model_args is not None and 'total_stack_size' in mem_model_args:
         total_stack_num_bytes = mem_model_args['total_stack_size']
         override = True
@@ -212,7 +210,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
     bp = HaltPoint(alloc_location)
     dt.cont()
     try:
-        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
+        bp.wait_complete(timeout=float(dt.dconf.get(dt.dconf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
         log.warn(f'{alloc_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
@@ -229,7 +227,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
     bp = HaltPoint(halt_location)
     dt.cont()
     try:
-        bp.wait_complete(timeout=float(DottConf.get('fixture_timeout')))
+        bp.wait_complete(timeout=float(dt.dconf.get(dt.dconf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
         log.warn(f'{halt_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
@@ -258,7 +256,7 @@ def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types
         setup_cb()
 
     # set on-target memory allocation model either from config or from pytest marker
-    mem_model: TargetMemModel = DottConf.conf['on_target_mem_model']
+    mem_model: TargetMemModel = dt.dconf.get(dt.dconf.keys.on_target_mem_model)
     mem_model_args = None
     if 'pytestmark' in request.keywords:
         for m in request.keywords['pytestmark']:
@@ -313,7 +311,7 @@ def live_access():
 
     Returns: Instance of TargetLive which provides memory read/write functions while target is running.
     """
-    live = TargetDirect(DottConf.conf['device_name'])
+    live = TargetDirect()
     yield live
     live.disconnect()
 

@@ -448,6 +448,20 @@ class DottConf(object):
         jlink_script: str = 'jlink_script'
         jlink_extconf: str = 'jlink_extconf'
 
+        # Application related settings
+        bl_symbol_elf: str = 'bl_symbol_elf'
+        bl_load_elf: str = 'bl_load_elf'
+        bl_symbol_addr: str = 'bl_symbol_addr'
+        app_load_elf: str = 'app_load_elf'
+        app_symbol_elf: str = 'app_symbol_elf'
+
+        # Memory allocation configuraiton
+        on_target_mem_model: str = 'on_target_mem_model'
+        on_target_mem_prestack_alloc_size: str = 'on_target_mem_prestack_alloc_size'
+        on_target_mem_prestack_alloc_location: str = 'on_target_mem_prestack_alloc_location'
+        on_target_mem_prestack_halt_location: str = 'on_target_mem_prestack_halt_location'
+        on_target_mem_prestack_total_stack_size: str = 'on_target_mem_prestack_total_stack_size'
+
         # Misc settings
         on_target_mem_model: str = 'on_target_mem_model'
         fixture_timeout: str = 'fixture_timeout'
