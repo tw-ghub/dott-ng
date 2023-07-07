@@ -462,8 +462,7 @@ class DottConf(object):
         on_target_mem_prestack_halt_location: str = 'on_target_mem_prestack_halt_location'
         on_target_mem_prestack_total_stack_size: str = 'on_target_mem_prestack_total_stack_size'
 
-        # Misc settings
-        on_target_mem_model: str = 'on_target_mem_model'
+        # Timeout settings
         fixture_timeout: str = 'fixture_timeout'
 
     @staticmethod
