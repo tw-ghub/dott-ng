@@ -101,6 +101,24 @@ class Dott(object):
         if create_default_target:
             self._default_target = self.create_target(DottConf())
 
+    def create_gdb_server(self, device_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
+        """
+        This method is DEPRECATED and will be removed with the next major release! The parameters passed to this method are already
+        ignored. Instead, the GDB server for the default target (according to the settings in DottConf) is (re-)created.
+        As create_gdb_server() will be deprecated, use dott().target.monitor.create_gdb_server() instead.
+        Args:
+            device_name: Ingores. Taken from default DottDoncf().
+            jlink_serial: Ingored. Taken from default DottDoncf().
+            srv_addr: Ignored. Taken from default DottDoncf().
+            srv_port:  Ignored. Taken from default DottDoncf().
+
+        Returns:
+            GdbServer instance.
+        """
+        from dottmi.utils import log
+        log.warn('create_gdb_server() will be deprecated in a forthcoming release. Port your code to used dott().target.monitor.create_gdb_server() instead!')
+        return dott().target.monitor.create_gdb_server(DottConf())
+
     def create_target(self, dconf: DottConf) -> Target:
         """
         Creates and retunrs a target object according to the settings of the provided DottConf instance.
