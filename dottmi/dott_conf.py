@@ -226,11 +226,12 @@ class DottConfExt(object):
             self._conf['bl_symbol_addr'] = int(self._conf['bl_symbol_addr'], base=16)
         log.info(f'BL ADDR (symbol):      0x{self._conf["bl_symbol_addr"]:x}')
 
-        if 'app_load_elf' not in self._conf:
-            raise Exception(f'app_load_elf not set')
-        if not os.path.exists(self._conf['app_load_elf']):
-            raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
-        log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
+        if 'app_load_elf' in self._conf:
+            if not os.path.exists(self._conf['app_load_elf']):
+                raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
+            log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
+        else:
+            self._conf["app_load_elf"] = None
 
         if 'app_symbol_elf' not in self._conf:
             # if no symbol file is specified assume that symbols are contained in the load file
