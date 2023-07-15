@@ -20,7 +20,6 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 
 import typing
 
-from dottmi import utils
 from dottmi.dott_conf import DottConf
 from dottmi.gdb import GdbServer
 
@@ -161,7 +160,6 @@ class Dott(object):
             target = target.Target(gdb_server, gdb_client, monitor, dconf)
 
         except TimeoutError:
-            gdb_client.disconnect()
             gdb_server.shutdown()
             raise DottException('Connection attempt to GDB server timed out. Either GDB server is not running or GDB server is slow.'
                                 'In that case, try to increase DottConf[gdb_server_connect_timeout]') from None

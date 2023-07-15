@@ -94,11 +94,7 @@ class Target(NotifySubscriber):
         self._gdb_client_is_connected = False
 
         if auto_connect:
-            try:
                 self.gdb_client_connect()
-            except Exception as ex:
-                self._bp_handler.stop()
-                raise ex
 
     def gdb_client_connect(self) -> None:
         """
