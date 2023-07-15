@@ -65,9 +65,9 @@ class DottHooks(object):
         cls._gdb_pre_connect_hook = gdb_pre_connect_hook
 
     @classmethod
-    def exec_gdb_pre_connect_hook(cls) -> None:
+    def exec_gdb_pre_connect_hook(cls, target: Target) -> None:
         if cls._gdb_pre_connect_hook is not None:
-            cls._gdb_pre_connect_hook()
+            cls._gdb_pre_connect_hook(target)
 
 # ----------------------------------------------------------------------------------------------------------------------
 @singleton
@@ -151,9 +151,7 @@ class Dott(object):
 
         # start GDB client
         gdb_client = GdbClient(dconf.get(dconf.keys.gdb_client_binary))
-        # Hook called before connection to GDB server is established.
-        DottHooks.exec_gdb_pre_connect_hook()
-        gdb_client.connect()
+        gdb_client.create()
 
         try:
             # create target instance and set GDB server address

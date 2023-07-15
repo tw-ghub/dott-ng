@@ -25,6 +25,7 @@ import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
+from dottmi.dott import DottHooks
 from dottmi.dott_conf import DottConf
 
 if TYPE_CHECKING:
@@ -106,6 +107,9 @@ class Target(NotifySubscriber):
                                 'auto-launches JLINK GDB server in singlerun mode.')
 
         try:
+            # Hook called before connection to GDB server is established.
+            DottHooks.exec_gdb_pre_connect_hook(self)
+
             self.exec('-gdb-set mi-async on', timeout=5)
             self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', self._connect_timeout)
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)

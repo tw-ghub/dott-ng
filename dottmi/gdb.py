@@ -247,8 +247,8 @@ class GdbClient(object):
         my_dir = os.path.dirname(os.path.realpath(__file__))
         os.environ['PYTHONPATH'] += os.pathsep + str(Path(my_dir + '/..'))
 
-    # connect to already running gdb server
-    def connect(self) -> None:
+    # Create DB client instance.
+    def create(self) -> None:
         # create 'GDB Machine Interface' instance and put it async mode
         self._mi_controller = GdbControllerDott([self._gdb_client_binary, "--nx", "--quiet", "--interpreter=mi3"])
         self._gdb_mi = GdbMi(self._mi_controller)
