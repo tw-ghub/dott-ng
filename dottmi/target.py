@@ -176,13 +176,14 @@ class Target(NotifySubscriber):
         """
         if self._gdb_client is not None:
             self.exec_noblock('-gdb-exit')
-            self._gdb_client.disconnect()
-            self._bp_handler.stop()
             self._gdb_client = None
             self._gdb_client_is_connected = False
         if self._gdb_server is not None:
             self._gdb_server.shutdown()
             self._gdb_server = None
+
+    def __del__(self):
+        self.disconnect()
 
     ###############################################################################################
     # Properties

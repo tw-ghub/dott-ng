@@ -253,9 +253,6 @@ class GdbClient(object):
         self._mi_controller = GdbControllerDott([self._gdb_client_binary, "--nx", "--quiet", "--interpreter=mi3"])
         self._gdb_mi = GdbMi(self._mi_controller)
 
-    def disconnect(self) -> None:
-        self._gdb_mi.shutdown()
-
     @property
     def gdb_mi(self) -> GdbMi:
         return self._gdb_mi

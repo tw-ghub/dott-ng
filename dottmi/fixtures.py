@@ -19,7 +19,6 @@
 from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
 
 import pytest
-import traceback
 import types
 import typing
 
@@ -323,26 +322,6 @@ def dott_auto_func_cleanup():
     yield
     dott().target.halt()
     InterceptPoint.delete_all()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# DOTT-internal fixture which ensures that the DOTT target is properly terminated
-# at end of test session (including DOTT's internal threads).
-@pytest.fixture(scope='session', autouse=True)
-def dott_auto_connect_and_disconnect():
-    try:
-        dott()
-    except Exception:
-        log.error(traceback.format_exc(limit=None))
-        pytest.exit('DOTT failed to initialize. Check exception trace for details.')
-    try:
-        yield
-    except Exception:
-        log.error(traceback.format_exc(limit=None))
-        pytest.exit('Unhandled exception during test session. Check exception trace for details.')
-
-    if dott().target is not None:
-        dott().shutdown()
 
 
 def pytest_configure(config):

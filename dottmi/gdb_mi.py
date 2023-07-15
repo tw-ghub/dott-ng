@@ -169,12 +169,6 @@ class GdbMi(object):
                 raise e
         return ret_val
 
-    def shutdown(self) -> None:
-        """
-        Stops the gdb response handler.
-        """
-        self._response_handler.stop()
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 class GdbMiContext(object):
@@ -227,15 +221,16 @@ class GdbMiResponseHandler(threading.Thread):
             self._notify_subscribers[(notify_msg, notify_reason)] = []
         self._notify_subscribers[(notify_msg, notify_reason)].append(subscriber)
 
-    def stop(self) -> None:
-        self._running = False
-
     def run(self) -> None:
         self._running = True
 
         while self._running:
             try:
                 messages = self._mi_controller.get_gdb_response(timeout_sec=0.005, raise_error_on_timeout=False)
+
+                if not threading.main_thread().is_alive():
+                    self._running = False
+                    continue
 
                 for msg in messages:
                     msg_type = str(msg['type']).lower()
