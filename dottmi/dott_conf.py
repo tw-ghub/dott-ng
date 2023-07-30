@@ -229,14 +229,14 @@ class DottConfExt(object):
         if 'app_load_elf' in self._conf:
             if not os.path.exists(self._conf['app_load_elf']):
                 raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
-            log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
         else:
             self._conf["app_load_elf"] = None
+        log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
 
         if 'app_symbol_elf' not in self._conf:
             # if no symbol file is specified assume that symbols are contained in the load file
             self._conf['app_symbol_elf'] = self._conf['app_load_elf']
-        if not os.path.exists(self._conf['app_symbol_elf']):
+        if self._conf['app_symbol_elf'] is not None and not os.path.exists(self._conf['app_symbol_elf']):
             raise ValueError(f'{self._conf["app_symbol_elf"]} does not exist.')
         log.info(f'APP ELF (symbol):      {self._conf["app_symbol_elf"]}')
 
@@ -272,40 +272,41 @@ class DottConfExt(object):
                     raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd" or "my.module.path.MyMonitorClass"')
         log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()}')
 
-        # determine J-Link path and version
-        jlink_path, jlink_lib_name, jlink_version = self._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
-        self._conf["jlink_path"] = jlink_path
-        self._conf["jlink_lib_name"] = jlink_lib_name
-        self._conf["jlink_version"] = jlink_version
-        log.info(f'J-LINK local path:     {self._conf["jlink_path"]}')
-        log.info(f'J-LINK local version:  {self._conf["jlink_version"]}')
+        if self._conf[DottConf.keys.monitor_type] == 'jlink':
+            # determine J-Link path and version
+            jlink_path, jlink_lib_name, jlink_version = self._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
+            self._conf["jlink_path"] = jlink_path
+            self._conf["jlink_lib_name"] = jlink_lib_name
+            self._conf["jlink_version"] = jlink_version
+            log.info(f'J-LINK local path:     {self._conf["jlink_path"]}')
+            log.info(f'J-LINK local version:  {self._conf["jlink_version"]}')
 
-        # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
-        # to print, e.g., SWD connection parameters.
-        if 'jlink_interface' not in self._conf:
-            self._conf['jlink_interface'] = 'SWD'
-        log.info(f'J-LINK interface:      {self._conf["jlink_interface"]}')
+            # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
+            # to print, e.g., SWD connection parameters.
+            if 'jlink_interface' not in self._conf:
+                self._conf['jlink_interface'] = 'SWD'
+            log.info(f'J-LINK interface:      {self._conf["jlink_interface"]}')
 
-        if 'jlink_speed' not in self._conf:
-            self._conf['jlink_speed'] = '15000'
-        log.info(f'J-LINK speed (set):    {self._conf["jlink_speed"]}')
+            if 'jlink_speed' not in self._conf:
+                self._conf['jlink_speed'] = '15000'
+            log.info(f'J-LINK speed (set):    {self._conf["jlink_speed"]}')
 
-        if 'jlink_serial' not in self._conf:
-            self._conf['jlink_serial'] = None
-        elif self._conf['jlink_serial'] is not None and self._conf['jlink_serial'].strip() == '':
-            self._conf['jlink_serial'] = None
-        if self._conf['jlink_serial'] is not None:
-            log.info(f'J-LINK serial:         {self._conf["jlink_serial"]}')
+            if 'jlink_serial' not in self._conf:
+                self._conf['jlink_serial'] = None
+            elif self._conf['jlink_serial'] is not None and self._conf['jlink_serial'].strip() == '':
+                self._conf['jlink_serial'] = None
+            if self._conf['jlink_serial'] is not None:
+                log.info(f'J-LINK serial:         {self._conf["jlink_serial"]}')
 
-        if 'jlink_script' not in self._conf:
-            self._conf['jlink_script'] = None
-        if self._conf['jlink_script'] is not None:
-            log.info(f'J-LINK script:         {self._conf["jlink_script"]}')
+            if 'jlink_script' not in self._conf:
+                self._conf['jlink_script'] = None
+            if self._conf['jlink_script'] is not None:
+                log.info(f'J-LINK script:         {self._conf["jlink_script"]}')
 
-        if 'jlink_extconf' not in self._conf:
-            self._conf['jlink_extconf'] = None
-        if self._conf['jlink_extconf'] is not None:
-            log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
+            if 'jlink_extconf' not in self._conf:
+                self._conf['jlink_extconf'] = None
+            if self._conf['jlink_extconf'] is not None:
+                log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
         if 'gdb_client_binary' not in self._conf:
             default_gdb = 'arm-none-eabi-gdb-py'
@@ -355,7 +356,7 @@ class DottConfExt(object):
             if 'gdb_server_binary' in self._conf:
                 if not os.path.exists(self._conf['gdb_server_binary']):
                     raise Exception(f'GDB server binary {self._conf["gdb_server_binary"]} ({self._dott_ini}) not found!')
-            elif os.path.exists(jlink_path):
+            elif self._conf[DottConf.keys.monitor_type] == 'jlink' and os.path.exists(jlink_path):
                 self._conf['gdb_server_binary'] = str(Path(f'{jlink_path}/{jlink_gdb_server_binary}'))
             else:
                 # As a last option we check if the GDB server binary is in PATH
