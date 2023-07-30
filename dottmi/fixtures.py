@@ -59,7 +59,7 @@ def target_load_common(name: str, load_to_flash: bool, silent: bool = False, dt:
         # add bootloader symbol file; note: it is important to this 'add' so after doing target.load() with symbol elf.
         bl_symbol_elf = dt.dconf.get(dt.dconf.keys.bl_symbol_elf)
         if bl_symbol_elf is not None:
-            dt.cli_exec('add-symbol-file %s 0x%x' % bl_symbol_elf, int(dt.dconf.get(dt.dconf.keys.bl_symbol_addr)))
+            dt.cli_exec('add-symbol-file %s 0x%x' % (bl_symbol_elf, int(dt.dconf.get(dt.dconf.keys.bl_symbol_addr))))
 
         # disable FLASH breakpoints
         dt.monitor.enable_flash_breakpoints(False)
