@@ -123,7 +123,7 @@ class DottConfExt(object):
                         continue
                     clib = CDLL(lib)
                 except OSError:
-                    # Note: On Linux, Segger provides symlinks in the x86 folder to the 32bit version of the the
+                    # Note: On Linux, Segger provides symlinks in the x86 folder to the 32bit version of the
                     # JLink library using the 64bit library name. Attempting to load this library on a 64bit system
                     # results in an exception.
                     continue
