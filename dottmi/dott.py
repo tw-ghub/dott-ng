@@ -20,7 +20,7 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 
 import typing
 
-from dottmi.dott_conf import DottConf
+from dottmi.dott_conf import DottConf, DottConfExt
 from dottmi.gdb import GdbServer
 
 if typing.TYPE_CHECKING:
@@ -118,7 +118,7 @@ class Dott(object):
         log.warn('create_gdb_server() will be deprecated in a forthcoming release. Port your code to used dott().target.monitor.create_gdb_server() instead!')
         return dott().target.monitor.create_gdb_server(DottConf())
 
-    def create_target(self, dconf: DottConf) -> Target:
+    def create_target(self, dconf: [DottConf | DottConfExt]) -> Target:
         """
         Creates and retunrs a target object according to the settings of the provided DottConf instance.
 
@@ -131,7 +131,7 @@ class Dott(object):
         from dottmi import target
         from dottmi.gdb import GdbClient
 
-        monitor_type = dconf.get(dconf.keys.monitor_type)
+        monitor_type = dconf.get(DottConf.keys.monitor_type)
 
         if monitor_type == 'jlink':
             monitor: Monitor = MonitorJLink()
@@ -140,17 +140,17 @@ class Dott(object):
         elif monitor_type == 'custom':
             try:
                 import importlib
-                monitor_cls = getattr(importlib.import_module(dconf.get(dconf.keys.monitor_module)), dconf.get(dconf.keys.monitor_class))
+                monitor_cls = getattr(importlib.import_module(dconf.get(DottConf.keys.monitor_module)), dconf.get(DottConf.keys.monitor_class))
                 monitor: Monitor = monitor_cls()
             except:
-                raise DottException(f'Failed to instantiate {dconf.get(dconf.keys.monitor_module)}::{dconf.get(dconf.keys.monitor_class)}') from None
+                raise DottException(f'Failed to instantiate {dconf.get(DottConf.keys.monitor_module)}::{dconf.get(DottConf.keys.monitor_class)}') from None
         else:
-            raise DottException(f'Unknown debug monitor type {dconf.get(dconf.keys.monitor_type)}.')
+            raise DottException(f'Unknown debug monitor type {dconf.get(DottConf.keys.monitor_type)}.')
 
         gdb_server: GdbServer = monitor.create_gdb_server(dconf)
 
         # start GDB client
-        gdb_client = GdbClient(dconf.get(dconf.keys.gdb_client_binary))
+        gdb_client = GdbClient(dconf.get(DottConf.keys.gdb_client_binary))
         gdb_client.create()
 
         try:

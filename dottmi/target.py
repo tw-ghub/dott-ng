@@ -26,7 +26,7 @@ from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
 from dottmi.dott import DottHooks
-from dottmi.dott_conf import DottConf
+from dottmi.dott_conf import DottConf, DottConfExt
 
 if TYPE_CHECKING:
     from dottmi.target_mem import TargetMem
@@ -45,19 +45,19 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: DottConf, auto_connect: bool = True) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: [DottConf | DottConfExt], auto_connect: bool = True) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
         If auto_connect is True (the default) the connected from GDB client to GDB server is automatically established.
         """
         NotifySubscriber.__init__(self)
-        self._dconf: DottConf = dconf
+        self._dconf: [DottConf | DottConfExt] = dconf
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
 
-        self._device_name: str = dconf.get(dconf.keys.device_name)
-        self._device_endianess: str = dconf.get(dconf.keys.device_endianess)
+        self._device_name: str = dconf.get(DottConf.keys.device_name)
+        self._device_endianess: str = dconf.get(DottConf.keys.device_endianess)
         self._gdb_client: GdbClient = gdb_client
         self._gdb_server: GdbServer = gdb_server
         self._monitor: Monitor = monitor
@@ -89,7 +89,7 @@ class Target(NotifySubscriber):
         self._startup_delay: float = 0.0
 
         # timeout used when connection to remote GDB server ("target remote")
-        self._connect_timeout: float = float(dconf.get(dconf.keys.gdb_server_connect_timeout))
+        self._connect_timeout: float = float(dconf.get(DottConf.keys.gdb_server_connect_timeout))
 
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False

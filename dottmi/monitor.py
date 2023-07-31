@@ -21,7 +21,7 @@ import abc
 import typing
 
 from dottmi import utils
-from dottmi.dott_conf import DottConf
+from dottmi.dott_conf import DottConf, DottConfExt
 from dottmi.gdb import GdbServer, GdbServerExternal, GdbServerJLink
 
 if typing.TYPE_CHECKING:
@@ -76,10 +76,10 @@ class Monitor(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _instantiate_gdb_server(self, dconf: DottConf):
+    def _instantiate_gdb_server(self, dconf: [DottConf | DottConfExt]):
         pass
 
-    def create_gdb_server(self, dconf: DottConf) -> GdbServer:
+    def create_gdb_server(self, dconf: [DottConf | DottConfExt]) -> GdbServer:
         """
         Create new GDB server instance. If the configuration contains a gdb server address it is assumed that a GDB server is already running at this
         address and no attempt is made to launch a GDB server instance. Otherwise, it is tried to launch a gdb server instance corresponding to the
@@ -90,8 +90,8 @@ class Monitor(abc.ABC):
 
         Returns: GDB server instance.
         """
-        addr = dconf.get(dconf.keys.gdb_server_addr)
-        port = dconf.get(dconf.keys.gdb_server_port)
+        addr = dconf.get(DottConf.keys.gdb_server_addr)
+        port = dconf.get(DottConf.keys.gdb_server_port)
         if addr is not None:
             return GdbServerExternal(addr, port)
         else:
@@ -99,27 +99,27 @@ class Monitor(abc.ABC):
 
 
 class MonitorJLink(Monitor):
-    def _instantiate_gdb_server(self, dconf: DottConf):
-        srv_addr = dconf.get(dconf.keys.gdb_server_addr)
+    def _instantiate_gdb_server(self, dconf: [DottConf | DottConfExt]):
+        srv_addr = dconf.get(DottConf.keys.gdb_server_addr)
 
         if srv_addr is not None:
-            srv_port = dconf.get(dconf.keys.gdb_server_port)
+            srv_port = dconf.get(DottConf.keys.gdb_server_port)
         else:
             # if gdb server is launched by DOTT, we determine the port ourselves
             srv_port = utils.Network.get_next_srv_port('127.0.0.1')
 
         return GdbServerJLink(
-            dconf.get(dconf.keys.gdb_server_binary),
+            dconf.get(DottConf.keys.gdb_server_binary),
             srv_addr,
             srv_port,
-            dconf.get(dconf.keys.device_name),
-            dconf.get(dconf.keys.jlink_interface),
-            dconf.get(dconf.keys.device_endianess),
-            dconf.get(dconf.keys.jlink_speed),
-            dconf.get(dconf.keys.jlink_serial),
-            dconf.get(dconf.keys.jlink_server_addr),
-            dconf.get(dconf.keys.jlink_script),
-            dconf.get(dconf.keys.jlink_extconf)
+            dconf.get(DottConf.keys.device_name),
+            dconf.get(DottConf.keys.jlink_interface),
+            dconf.get(DottConf.keys.device_endianess),
+            dconf.get(DottConf.keys.jlink_speed),
+            dconf.get(DottConf.keys.jlink_serial),
+            dconf.get(DottConf.keys.jlink_server_addr),
+            dconf.get(DottConf.keys.jlink_script),
+            dconf.get(DottConf.keys.jlink_extconf)
         )
 
     def set_flash_device(self, device_name: str) -> None:
@@ -147,7 +147,7 @@ class MonitorJLink(Monitor):
 
 
 class MonitorOpenOCD(Monitor):
-    def _instantiate_gdb_server(self, dconf: DottConf):
+    def _instantiate_gdb_server(self, dconf: [DottConf | DottConfExt]):
         raise NotImplementedError('Automatic starting of OpenOCD GDB server is not supported. Provide "gdb_server_addr" and "gdb_server_addr" '
                                   'config parameters to connect to an externally started/remote GDB server instance.')
 
