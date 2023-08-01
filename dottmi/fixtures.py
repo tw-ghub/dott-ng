@@ -123,7 +123,7 @@ def _target_mem_init_noalloc(dt: Target = None) -> None:
         log.info(f'Overriding std. target mem model with {TargetMemModel.NOALLOC}.')
 
     # define the initial test breakpoint, start the target and wait until the breakpoint is reached
-    bp = HaltPoint('main')
+    bp = HaltPoint('main', target=dt)
     dt.cont()
     try:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
@@ -149,7 +149,7 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
         log.info(f'Overriding std. target mem model with {TargetMemModel.TESTHOOK}.')
 
     # define the initial test breakpoint, start the target and wait until the breakpoint is reached
-    bp = HaltPoint('DOTT_test_hook_chained')
+    bp = HaltPoint('DOTT_test_hook_chained', target=dt)
     dt.cont()
     try:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
@@ -206,7 +206,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
                  f'total stack: {total_stack_num_bytes if total_stack_num_bytes is not None else "unknown"}).')
 
     # define the initial allocation breakpoint, start the target and wait until the breakpoint is reached
-    bp = HaltPoint(alloc_location)
+    bp = HaltPoint(alloc_location, target=dt)
     dt.cont()
     try:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
@@ -223,7 +223,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
     dt.mem = TargetMem(dt, target_mem_stack_start, target_mem_num_bytes)
 
     # define the halt breakpoint, start the target and wait until the breakpoint is reached
-    bp = HaltPoint(halt_location)
+    bp = HaltPoint(halt_location, target=dt)
     dt.cont()
     try:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
@@ -265,11 +265,11 @@ def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types
                 break
 
     if mem_model == TargetMemModel.NOALLOC:
-        yield from _target_mem_init_noalloc()
+        yield from _target_mem_init_noalloc(dt=dt)
     elif mem_model == TargetMemModel.TESTHOOK:
-        yield from _target_mem_init_testhook()
+        yield from _target_mem_init_testhook(dt=dt)
     elif mem_model == TargetMemModel.PRESTACK:
-        yield from _target_mem_init_prestack(mem_model_args)
+        yield from _target_mem_init_prestack(mem_model_args, dt=dt)
     else:
         log.warn(f'Selected target memory allocation model is not implemented!')
 
