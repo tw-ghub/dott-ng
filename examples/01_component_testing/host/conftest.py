@@ -33,8 +33,14 @@ except:
     pass
 
 # set binaries used for the tests in this folder (relative to main conftest file)
-DottConf.conf['app_load_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.bin.elf'
-DottConf.conf['app_symbol_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.elf'
+if os.environ.get('S32K144_EXAMPLE') == '1':
+    DottConf.conf['app_load_elf'] = f'01_component_testing/target_s32k144/Debug_FLASH/DOTT_S32_Example.elf'
+    DottConf.conf['monitor_type'] = 'pemicro'
+    DottConf.conf['device_name'] = 'NXP_S32K1xx_S32K144F512M15'
+else:
+    # Standard STM32F0 example
+    DottConf.conf['app_load_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.bin.elf'
+    DottConf.conf['app_symbol_elf'] = f'01_component_testing/target/build/dott_example_01{postfix}/dott_example_01{postfix}.elf'
 
 # re-target target_reset/load fixtures
 if postfix != '':
