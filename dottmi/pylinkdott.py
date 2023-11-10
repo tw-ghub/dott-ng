@@ -58,7 +58,8 @@ class _JlinkDott(JLink):
 
 # -------------------------------------------------------------------------------------------------
 class TargetDirect(object):
-    def __init__(self, device_name: str):
+    def __init__(self):
+        device_name: str = DottConf.get('device_name')
         jlink_ip_addr = DottConf.get('jlink_server_addr')
         jlink_port = DottConf.get('jlink_server_port')
         jlink_serial = DottConf.get('jlink_serial')

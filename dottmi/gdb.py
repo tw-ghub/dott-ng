@@ -57,6 +57,23 @@ class GdbServer(ABC):
         pass
 
 
+class GdbServerExternal(GdbServer):
+    """
+    This class represents an external (typically remote) GDB server instance. It is not started or managed by DOTT.
+    Management of this GDB server instance is handled externally.
+    """
+    def __init__(self, addr, port):
+        super().__init__(addr, port)
+
+    def _launch(self, device_name: str):
+        # remote GDB server instances are not managed by DOTT
+        pass
+
+    def shutdown(self):
+        # remote GDB server instances are not managed by DOTT
+        pass
+
+
 class GdbServerJLink(GdbServer):
     def __init__(self, gdb_svr_binary: str, addr: str, port: int, device_name: str, interface: str, endian: str,
                  speed: str = '15000', serial_number: str = None, jlink_addr: str = None, jlink_script: str = None,
@@ -230,14 +247,11 @@ class GdbClient(object):
         my_dir = os.path.dirname(os.path.realpath(__file__))
         os.environ['PYTHONPATH'] += os.pathsep + str(Path(my_dir + '/..'))
 
-    # connect to already running gdb server
-    def connect(self) -> None:
+    # Create DB client instance.
+    def create(self) -> None:
         # create 'GDB Machine Interface' instance and put it async mode
         self._mi_controller = GdbControllerDott([self._gdb_client_binary, "--nx", "--quiet", "--interpreter=mi3"])
         self._gdb_mi = GdbMi(self._mi_controller)
-
-    def disconnect(self) -> None:
-        self._gdb_mi.shutdown()
 
     @property
     def gdb_mi(self) -> GdbMi:

@@ -25,6 +25,9 @@ import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
+from dottmi.dott import DottHooks
+from dottmi.dott_conf import DottConf, DottConfExt
+
 if TYPE_CHECKING:
     from dottmi.target_mem import TargetMem
 
@@ -42,18 +45,19 @@ logging.basicConfig(level=logging.DEBUG)
 
 class Target(NotifySubscriber):
 
-    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, device_name: str, device_endianes: str, auto_connect: bool = True) -> None:
+    def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: [DottConf | DottConfExt], auto_connect: bool = True) -> None:
         """
         Creates a target which represents a target device. It requires both a GDB server (either started by DOTT
         or started externally) and a GDB client instance used to connect to the GDB server.
         If auto_connect is True (the default) the connected from GDB client to GDB server is automatically established.
         """
         NotifySubscriber.__init__(self)
+        self._dconf: [DottConf | DottConfExt] = dconf
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
 
-        self._device_name: str = device_name
-        self._device_endianes: str = device_endianes
+        self._device_name: str = dconf.get(DottConf.keys.device_name)
+        self._device_endianess: str = dconf.get(DottConf.keys.device_endianess)
         self._gdb_client: GdbClient = gdb_client
         self._gdb_server: GdbServer = gdb_server
         self._monitor: Monitor = monitor
@@ -84,15 +88,14 @@ class Target(NotifySubscriber):
         # delay after device startup / continue
         self._startup_delay: float = 0.0
 
+        # timeout used when connection to remote GDB server ("target remote")
+        self._connect_timeout: float = float(dconf.get(DottConf.keys.gdb_server_connect_timeout))
+
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False
 
         if auto_connect:
-            try:
                 self.gdb_client_connect()
-            except Exception as ex:
-                self._bp_handler.stop()
-                raise ex
 
     def gdb_client_connect(self) -> None:
         """
@@ -104,8 +107,11 @@ class Target(NotifySubscriber):
                                 'auto-launches JLINK GDB server in singlerun mode.')
 
         try:
+            # Hook called before connection to GDB server is established.
+            DottHooks.exec_gdb_pre_connect_hook(self)
+
             self.exec('-gdb-set mi-async on', timeout=5)
-            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', timeout=5)
+            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', self._connect_timeout)
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)
         except Exception as ex:
             raise ex
@@ -170,19 +176,24 @@ class Target(NotifySubscriber):
         """
         if self._gdb_client is not None:
             self.exec_noblock('-gdb-exit')
-            self._gdb_client.disconnect()
-            self._bp_handler.stop()
             self._gdb_client = None
             self._gdb_client_is_connected = False
         if self._gdb_server is not None:
             self._gdb_server.shutdown()
             self._gdb_server = None
 
+    def __del__(self):
+        self.disconnect()
+
     ###############################################################################################
     # Properties
 
     @property
-    def gdb_client(self):
+    def dconf(self) -> DottConf:
+        return self._dconf
+
+    @property
+    def gdb_client(self) -> GdbClient:
         return self._gdb_client
 
     @property
@@ -200,7 +211,7 @@ class Target(NotifySubscriber):
         return self._mem
 
     @mem.setter
-    def mem(self, target_mem: TargetMem):
+    def mem(self, target_mem: TargetMem) -> None:
         if not isinstance(target_mem, TargetMem):
             raise DottException('mem has to be an instance of TargetMem')
         self._mem = target_mem
@@ -215,7 +226,7 @@ class Target(NotifySubscriber):
 
     @property
     def byte_order(self) -> str:
-        return self._device_endianes
+        return self._device_endianess
 
     @property
     def startup_delay(self) -> float:

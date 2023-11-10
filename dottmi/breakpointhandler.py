@@ -39,15 +39,14 @@ class BreakpointHandler(NotifySubscriber, threading.Thread):
     def remove_bp(self, bp: Breakpoint) -> None:
         self._breakpoints.pop(bp.num)
 
-    def stop(self) -> None:
-        self._running = False
-
     def run(self) -> None:
         self._running = True
         while self._running:
             try:
                 msg: Dict = self.wait_for_notification(True, timeout=0.1)
             except queue.Empty:
+                if not threading.main_thread().is_alive():
+                    self._running = False
                 continue
 
             if 'reason' in msg['payload']:

@@ -123,7 +123,7 @@ class DottConfExt(object):
                         continue
                     clib = CDLL(lib)
                 except OSError:
-                    # Note: On Linux, Segger provides symlinks in the x86 folder to the 32bit version of the the
+                    # Note: On Linux, Segger provides symlinks in the x86 folder to the 32bit version of the
                     # JLink library using the 64bit library name. Attempting to load this library on a 64bit system
                     # results in an exception.
                     continue
@@ -226,16 +226,17 @@ class DottConfExt(object):
             self._conf['bl_symbol_addr'] = int(self._conf['bl_symbol_addr'], base=16)
         log.info(f'BL ADDR (symbol):      0x{self._conf["bl_symbol_addr"]:x}')
 
-        if 'app_load_elf' not in self._conf:
-            raise Exception(f'app_load_elf not set')
-        if not os.path.exists(self._conf['app_load_elf']):
-            raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
+        if 'app_load_elf' in self._conf:
+            if not os.path.exists(self._conf['app_load_elf']):
+                raise ValueError(f'{self._conf["app_load_elf"]} does not exist.')
+        else:
+            self._conf["app_load_elf"] = None
         log.info(f'APP ELF (load):        {self._conf["app_load_elf"]}')
 
         if 'app_symbol_elf' not in self._conf:
             # if no symbol file is specified assume that symbols are contained in the load file
             self._conf['app_symbol_elf'] = self._conf['app_load_elf']
-        if not os.path.exists(self._conf['app_symbol_elf']):
+        if self._conf['app_symbol_elf'] is not None and not os.path.exists(self._conf['app_symbol_elf']):
             raise ValueError(f'{self._conf["app_symbol_elf"]} does not exist.')
         log.info(f'APP ELF (symbol):      {self._conf["app_symbol_elf"]}')
 
@@ -247,51 +248,65 @@ class DottConfExt(object):
             self._conf['device_endianess'] = 'little'
         else:
             if self._conf['device_endianess'] != 'little' and self._conf['device_endianess'] != 'big':
-                raise ValueError(f'device_endianess in {dott_ini} should be either "little" or "big".')
+                raise ValueError(f'device_endianess should be either "little" or "big".')
         log.info(f'Device endianess:      {self._conf["device_endianess"]}')
 
         if 'monitor_type' not in self._conf:
             self._conf['monitor_type'] = 'jlink'
         else:
-            self._conf['monitor_type'] = self._conf['monitor_type'].strip().lower()
             if self._conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
-                raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd"')
+
+                # Check if monitor type is of format my.module.path.MyMonitorClass; if yes populate monitor_module and monitor_class confif values
+                # In this case, monitor_type is set to 'custom'.
+                if '.' in self._conf['monitor_type'].strip():
+                    parts = self._conf['monitor_type'].split('.')
+                    if len(parts) > 0:
+                        self._conf['monitor_class'] = parts[-1]
+                    if len(parts) > 1:
+                        self._conf['monitor_module'] = '.'.join(parts[0:-1])
+                    else:
+                        self._conf['monitor_module'] = None
+                    self._conf['monitor_type'] = 'custom'
+
+                else:
+                    raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd" or "my.module.path.MyMonitorClass"')
         log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()}')
 
-        # determine J-Link path and version
-        jlink_path, jlink_lib_name, jlink_version = self._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
-        self._conf["jlink_path"] = jlink_path
-        self._conf["jlink_lib_name"] = jlink_lib_name
-        self._conf["jlink_version"] = jlink_version
-        log.info(f'J-LINK local path:     {self._conf["jlink_path"]}')
-        log.info(f'J-LINK local version:  {self._conf["jlink_version"]}')
+        if self._conf[DottConf.keys.monitor_type] == 'jlink':
+            # determine J-Link path and version
+            jlink_path, jlink_lib_name, jlink_version = self._get_jlink_path(jlink_default_path, jlink_lib_name, jlink_gdb_server_binary)
+            self._conf["jlink_path"] = jlink_path
+            self._conf["jlink_lib_name"] = jlink_lib_name
+            self._conf["jlink_version"] = jlink_version
+            log.info(f'J-LINK local path:     {self._conf["jlink_path"]}')
+            log.info(f'J-LINK local version:  {self._conf["jlink_version"]}')
 
-        # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
-        # to print, e.g., SWD connection parameters.
-        if 'jlink_interface' not in self._conf:
-            self._conf['jlink_interface'] = 'SWD'
-        log.info(f'J-LINK interface:      {self._conf["jlink_interface"]}')
+            # We are connecting to a J-LINK gdb server which was not started by DOTT. Therefore, it does not make sense
+            # to print, e.g., SWD connection parameters.
+            if 'jlink_interface' not in self._conf:
+                self._conf['jlink_interface'] = 'SWD'
+            log.info(f'J-LINK interface:      {self._conf["jlink_interface"]}')
 
-        if 'jlink_speed' not in self._conf:
-            self._conf['jlink_speed'] = '15000'
-        log.info(f'J-LINK speed (set):    {self._conf["jlink_speed"]}')
+            if 'jlink_speed' not in self._conf:
+                self._conf['jlink_speed'] = '15000'
+            log.info(f'J-LINK speed (set):    {self._conf["jlink_speed"]}')
 
-        if 'jlink_serial' not in self._conf:
-            self._conf['jlink_serial'] = None
-        elif self._conf['jlink_serial'] is not None and self._conf['jlink_serial'].strip() == '':
-            self._conf['jlink_serial'] = None
-        if self._conf['jlink_serial'] is not None:
-            log.info(f'J-LINK serial:         {self._conf["jlink_serial"]}')
+            if 'jlink_serial' not in self._conf:
+                self._conf['jlink_serial'] = None
+            elif self._conf['jlink_serial'] is not None and self._conf['jlink_serial'].strip() == '':
+                self._conf['jlink_serial'] = None
+            if self._conf['jlink_serial'] is not None:
+                log.info(f'J-LINK serial:         {self._conf["jlink_serial"]}')
 
-        if 'jlink_script' not in self._conf:
-            self._conf['jlink_script'] = None
-        if self._conf['jlink_script'] is not None:
-            log.info(f'J-LINK script:         {self._conf["jlink_script"]}')
+            if 'jlink_script' not in self._conf:
+                self._conf['jlink_script'] = None
+            if self._conf['jlink_script'] is not None:
+                log.info(f'J-LINK script:         {self._conf["jlink_script"]}')
 
-        if 'jlink_extconf' not in self._conf:
-            self._conf['jlink_extconf'] = None
-        if self._conf['jlink_extconf'] is not None:
-            log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
+            if 'jlink_extconf' not in self._conf:
+                self._conf['jlink_extconf'] = None
+            if self._conf['jlink_extconf'] is not None:
+                log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
         if 'gdb_client_binary' not in self._conf:
             default_gdb = 'arm-none-eabi-gdb-py'
@@ -312,6 +327,16 @@ class DottConfExt(object):
             self._conf['gdb_server_port'] = '2331'
         log.info(f'GDB server port:       {self._conf["gdb_server_port"]}')
 
+        if 'gdb_server_connect_timeout' not in self._conf or self._conf['gdb_server_connect_timeout'] is None:
+            self._conf['gdb_server_connect_timeout'] = '5'
+        elif self._conf['gdb_server_connect_timeout'].strip() == '':
+            self._conf['gdb_server_connect_timeout'] = '5'
+
+        if 'fixture_timeout' not in self._conf or self._conf['fixture_timeout'] is None:
+            self._conf['fixture_timeout'] = '5'
+        elif self._conf['fixture_timeout'].strip() == '':
+            self._conf['fixture_timeout'] = '5'
+
         if 'jlink_server_addr' not in self._conf or self._conf['jlink_server_addr'] is None:
             self._conf['jlink_server_addr'] = None
         elif self._conf['jlink_server_addr'].strip() == '':
@@ -331,7 +356,7 @@ class DottConfExt(object):
             if 'gdb_server_binary' in self._conf:
                 if not os.path.exists(self._conf['gdb_server_binary']):
                     raise Exception(f'GDB server binary {self._conf["gdb_server_binary"]} ({self._dott_ini}) not found!')
-            elif os.path.exists(jlink_path):
+            elif self._conf[DottConf.keys.monitor_type] == 'jlink' and os.path.exists(jlink_path):
                 self._conf['gdb_server_binary'] = str(Path(f'{jlink_path}/{jlink_gdb_server_binary}'))
             else:
                 # As a last option we check if the GDB server binary is in PATH
@@ -400,6 +425,48 @@ class DottConfExt(object):
 class DottConf(object):
     conf = DottConfExt()
 
+    class keys(object):
+        # GDB server connection parameters
+        gdb_client_binary: str = 'gdb_client_binary'
+        gdb_server_addr: str = 'gdb_server_addr'
+        gdb_server_port: str = 'gdb_server_port'
+        gdb_server_binary: str = 'gdb_server_binary'
+        gdb_server_connect_timeout: str = 'gdb_server_connect_timeout'
+
+        # Debug monitor variants
+        monitor_type: str = 'monitor_type'
+        monitor_module: str = 'monitor_module'
+        monitor_class: str = 'monitor_class'
+
+        # Device properties
+        device_name: str = 'device_name'
+        device_endianess: str = 'device_endianess'
+
+        # JLINK-specific settings
+        jlink_interface: str = 'jlink_interface'
+        jlink_speed: str = 'jlink_speed'
+        jlink_serial: str = 'jlink_serial'
+        jlink_server_addr: str = 'jlink_server_addr'
+        jlink_script: str = 'jlink_script'
+        jlink_extconf: str = 'jlink_extconf'
+
+        # Application related settings
+        bl_symbol_elf: str = 'bl_symbol_elf'
+        bl_load_elf: str = 'bl_load_elf'
+        bl_symbol_addr: str = 'bl_symbol_addr'
+        app_load_elf: str = 'app_load_elf'
+        app_symbol_elf: str = 'app_symbol_elf'
+
+        # Memory allocation configuraiton
+        on_target_mem_model: str = 'on_target_mem_model'
+        on_target_mem_prestack_alloc_size: str = 'on_target_mem_prestack_alloc_size'
+        on_target_mem_prestack_alloc_location: str = 'on_target_mem_prestack_alloc_location'
+        on_target_mem_prestack_halt_location: str = 'on_target_mem_prestack_halt_location'
+        on_target_mem_prestack_total_stack_size: str = 'on_target_mem_prestack_total_stack_size'
+
+        # Timeout settings
+        fixture_timeout: str = 'fixture_timeout'
+
     @staticmethod
     def set(key: str, val: str) -> None:
         DottConf.conf.set(key, val)
@@ -415,3 +482,9 @@ class DottConf(object):
     @staticmethod
     def parse_config(force_reparse: bool = False) -> None:
         return DottConf.conf.parse_config(force_reparse)
+
+    @staticmethod
+    def log(key, val):
+        key += ':'
+        log.info(f'{key:25} {val}')
+

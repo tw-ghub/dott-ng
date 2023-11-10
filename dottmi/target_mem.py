@@ -626,7 +626,7 @@ class TargetMemScoped(object):
             # Arm 'Procedure Call Standard for the Arm Architecture' requires double-word alignment on
             # 'public interface' (i.e., when calling functions).
             log.warn('Current SP is not double-word aligned! Correcting alignment for allocated memory.')
-            self._sp_init_dec += 8 - (self._sp_init_dec % 8)
+            self._sp_init_dec -= (self._sp_init_dec % 8)
 
         # (3) decrement SP
         # Note: Stack is "full-descending" (see 'Procedure Call Standard for the Arm Architecture').

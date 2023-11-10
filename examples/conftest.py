@@ -23,8 +23,7 @@ import socket
 import pigpio
 
 from dottmi.dott import dott
-from dottmi.fixtures import dott_auto_func_cleanup, dott_auto_connect_and_disconnect, target_reset_common, pytest_collection_finish, pytest_configure
-
+from dottmi.fixtures import dott_auto_func_cleanup, target_reset_common, pytest_collection_finish, pytest_configure
 # set working directory to the folder which contains this conftest file
 import pytest
 
