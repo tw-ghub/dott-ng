@@ -30,7 +30,7 @@ import types
 from typing import List
 
 from dottmi.dottexceptions import DottException
-from dottmi.monitor import MonitorJLink, Monitor, MonitorOpenOCD
+from dottmi.monitor import MonitorJLink, Monitor, MonitorOpenOCD, MonitorPEMicro
 from dottmi.utils import log_setup, singleton
 
 
@@ -137,6 +137,8 @@ class Dott(object):
             monitor: Monitor = MonitorJLink()
         elif monitor_type == 'openocd':
             monitor: Monitor = MonitorOpenOCD()
+        elif monitor_type == 'pemicro':
+            monitor: Monitor = MonitorPEMicro()
         elif monitor_type == 'custom':
             try:
                 import importlib

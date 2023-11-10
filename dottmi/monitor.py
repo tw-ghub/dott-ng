@@ -22,7 +22,7 @@ import typing
 
 from dottmi import utils
 from dottmi.dott_conf import DottConf, DottConfExt
-from dottmi.gdb import GdbServer, GdbServerExternal, GdbServerJLink
+from dottmi.gdb import GdbServer, GdbServerExternal, GdbServerJLink, GdbServerPEMicro
 
 if typing.TYPE_CHECKING:
     from dottmi.target import Target
@@ -174,3 +174,49 @@ class MonitorOpenOCD(Monitor):
 
     def xpsr_name(self) -> str:
         return 'xPSR'
+
+
+class MonitorPEMicro(Monitor):
+    def _instantiate_gdb_server(self, dconf: DottConf | DottConfExt):
+        srv_addr = dconf.get(DottConf.keys.gdb_server_addr)
+
+        if srv_addr is not None:
+            srv_port = dconf.get(DottConf.keys.gdb_server_port)
+        else:
+            # if gdb server is launched by DOTT, we determine the port ourselves
+            srv_port = utils.Network.get_next_srv_port('127.0.0.1')
+
+        return GdbServerPEMicro(dconf.get(DottConf.keys.gdb_server_binary),
+                                dconf.get(DottConf.keys.gdb_server_addr),
+                                srv_port,
+                                dconf.get(DottConf.keys.device_name),
+                                dconf.get(DottConf.keys.pemicro_port),
+                                dconf.get(DottConf.keys.pemicro_interface),
+                                dconf.get(DottConf.keys.device_endianess),
+                                dconf.get_runtime_path())
+
+    def set_flash_device(self, device_name: str) -> None:
+        # Unused for PE Micro (set when starting GDB server).
+        pass
+
+    def enable_flash_download(self, enable: bool) -> None:
+        # No such option known for PE Micro (monitor commands are not officially documented).
+        pass
+
+    def enable_flash_breakpoints(self, enable: bool) -> None:
+        # No such option known for PE Micro (monitor commands are not officially documented).
+        pass
+
+    def erase_flash(self) -> None:
+        # No such option known for PE Micro (monitor commands are not officially documented).
+        pass
+
+    def clear_all_breakpoints(self) -> None:
+        # No such option known for PE Micro (monitor commands are not officially documented).
+        pass
+
+    def reset(self) -> None:
+        self.run_cmd('_reset')
+
+    def xpsr_name(self) -> str:
+        return 'xpsr'

@@ -222,6 +222,110 @@ class GdbServerJLink(GdbServer):
         return err_code, err_str
 
 
+class GdbServerPEMicro(GdbServer):
+    def __init__(self, gdb_svr_binary: str | None, addr: str | None, port: int, device_name: str,
+                 pemicro_port: str | None, pemicro_interface: str | None, endian: str, dott_runtime_path: str | None):
+        super().__init__(addr, port)
+        self._srv_binary: str | None = gdb_svr_binary
+        self._pemicro_port: str = pemicro_port
+        self._pemicro_interface: str = pemicro_interface
+        self._target_endian: str = endian
+        self._srv_process = None
+        # Popen.__del__ occasionally complains under Windows about invalid file handles on interpreter shutdown.
+        # This is somewhat distracting and is silenced by a custom delete function.
+        subprocess.Popen.__del_orig__ = subprocess.Popen.__del__
+        subprocess.Popen.__del__ = GdbServerPEMicro._popen_del
+
+        if not self._srv_binary and dott_runtime_path:
+            # No PE Micro gdb server binary specified in config. Check if it is installed as part of DOTT runtime.
+            bin_ext: str = '.exe' if os.name == 'nt' else ''
+            self._srv_binary = f'{dott_runtime_path}{os.sep}apps{os.sep}pemicro{os.sep}bin{os.sep}pegdbserver_console{bin_ext}'
+
+        log.info(f'PE Micro GDB server binary:   {self._srv_binary}')
+        if not os.path.exists(self._srv_binary):
+            raise DottException(f'PE Micro gdb server binary could not be found ({self._srv_binary})!')
+
+        if self.addr is None:
+            self._launch(device_name)
+
+    @staticmethod
+    def _popen_del(instance):
+        try:
+            instance.__del_orig__()
+        except:
+            pass
+
+    def _launch_internal(self, device_name: str) -> None:
+        args = [self._srv_binary, f'-device={device_name}', f'-serverport={self.port}', '-singlesession', '-startserver']
+
+        if self._pemicro_port is not None:
+            args.append(f'-port={self._pemicro_port}')
+
+        if self._pemicro_interface is not None:
+            args.append(f'-interface={self._pemicro_interface}')
+
+        cflags = 0
+        if platform.system() == 'Windows':
+            cflags = subprocess.CREATE_NEW_PROCESS_GROUP
+        self._srv_process = subprocess.Popen(args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                             creationflags=cflags)
+
+        p = psutil.Process(self._srv_process.pid)
+        try:
+            # query the started process until it has opened a listening socket on the expected port
+            startup_done = False
+            end_time = time.time() + 8
+            while startup_done is False and time.time() < end_time:
+                for c in p.connections():
+                    if c.laddr.port == self.port:
+                        log.info(f'GDB server is now listening on port {self.port}!')
+                        startup_done = True
+
+        except psutil.AccessDenied as ex:
+            # On Linux the situation was observed that from newly launched GDB server processes
+            # an AccessDenied exception is raised when accessing them with psutils. This exception
+            # is then 'thrown' upwards where it is handled by retrying to create the process.
+            raise ex
+
+        except (NoSuchProcess, PermissionError) as ex:
+            log.error('PEMicro GDB server has terminated!')
+            end_time = time.time() + 2
+            startup_done: bool = False
+            while not startup_done and time.time() < end_time:
+                res_poll = self._srv_process.poll()
+                if res_poll is not None:
+                    break
+            raise DottException('Startup of PEMicro gdb server failed!') from None
+
+        if not startup_done:
+            raise DottException('Startup of PEMicro gdb server failed due to timeout!') from None
+        else:
+            self._addr = '127.0.0.1'
+            atexit.register(self.shutdown)
+
+    def _launch(self, device_name: str):
+        start_done: bool = False
+        while not start_done:
+            try:
+                self._launch_internal(device_name)
+                start_done = True
+            except psutil.AccessDenied as ex:
+                pass
+
+    def shutdown(self):
+        if self._srv_process is not None:
+            # if the gdb server is still running (despite being started in single run mode) it is terminated here
+            try:
+                if platform.system() == 'Windows':
+                    os.kill(self._srv_process.pid, signal.CTRL_BREAK_EVENT)
+                else:
+                    os.kill(self._srv_process.pid, signal.SIGINT)
+                self._srv_process.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                self._srv_process.terminate()
+            self._srv_process = None
+
+
 class GdbClient(object):
 
     # Create a new gdb instance

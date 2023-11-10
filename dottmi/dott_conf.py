@@ -42,6 +42,7 @@ class DottConfExt(object):
     def __init__(self, ini_file='dott.ini') -> None:
         self._conf = {}
         self._dott_runtime = None
+        self._dott_runtime_path: str | None = None
         self._parsed = None
         self._dott_ini = ini_file
         self.conf = self
@@ -55,8 +56,11 @@ class DottConfExt(object):
         if os.environ.get('DOTTRUNTIME') is None:
             os.environ['DOTTRUNTIME'] = dott_runtime_path
 
-    def get(self, key: str):
-        return self._conf[key]
+    def get(self, key: str) -> str | int | None:
+        return self._conf[key] if key in self._conf.keys() else None
+
+    def get_runtime_path(self) -> str | None:
+        return self._dott_runtime_path
 
     def __getitem__(self, key) -> Union[int, str, None]:
         return self._conf[key]
@@ -109,6 +113,8 @@ class DottConfExt(object):
 
         if self.get('DOTTRUNTIME') is None:
             raise Exception('Runtime components neither found in DOTT data path nor in DOTTRUNTIME folder.')
+
+        self._dott_runtime_path = dott_runtime_path
 
     def _get_jlink_path(self, segger_paths: List[str], segger_lib_name: str, jlink_gdb_server_binary: str) -> Tuple[str, str, str]:
         all_libs = {}
@@ -251,14 +257,16 @@ class DottConfExt(object):
                 raise ValueError(f'device_endianess should be either "little" or "big".')
         log.info(f'Device endianess:      {self._conf["device_endianess"]}')
 
+        _custom_monitor_info: str = ''
         if 'monitor_type' not in self._conf:
             self._conf['monitor_type'] = 'jlink'
         else:
-            if self._conf['monitor_type'].strip().lower() not in ('jlink', 'openocd'):
+            if self._conf['monitor_type'].strip().lower() not in ('jlink', 'openocd', 'pemicro'):
 
-                # Check if monitor type is of format my.module.path.MyMonitorClass; if yes populate monitor_module and monitor_class confif values
-                # In this case, monitor_type is set to 'custom'.
+                # Check if monitor type is of format my.module.path.MyMonitorClass; if yes populate monitor_module
+                # and monitor_class config values. In this case, monitor_type is set to 'custom'.
                 if '.' in self._conf['monitor_type'].strip():
+                    _custom_monitor_info = f" [{self._conf['monitor_type'].strip()}]"
                     parts = self._conf['monitor_type'].split('.')
                     if len(parts) > 0:
                         self._conf['monitor_class'] = parts[-1]
@@ -269,8 +277,9 @@ class DottConfExt(object):
                     self._conf['monitor_type'] = 'custom'
 
                 else:
-                    raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd" or "my.module.path.MyMonitorClass"')
-        log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()}')
+                    raise ValueError(f'Unknown monitor type (supported: "jlink", "openocd", "pemicro" or "my.module.path.MyMonitorClass"')
+
+        log.info(f'Selected monitor type: {self._conf["monitor_type"].upper()} {_custom_monitor_info}')
 
         if self._conf[DottConf.keys.monitor_type] == 'jlink':
             # determine J-Link path and version
@@ -358,7 +367,7 @@ class DottConfExt(object):
                     raise Exception(f'GDB server binary {self._conf["gdb_server_binary"]} ({self._dott_ini}) not found!')
             elif self._conf[DottConf.keys.monitor_type] == 'jlink' and os.path.exists(jlink_path):
                 self._conf['gdb_server_binary'] = str(Path(f'{jlink_path}/{jlink_gdb_server_binary}'))
-            else:
+            elif self._conf[DottConf.keys.monitor_type] == 'jlink':
                 # As a last option we check if the GDB server binary is in PATH
                 try:
                     subprocess.check_call((jlink_gdb_server_binary, '-device'))
@@ -368,7 +377,11 @@ class DottConfExt(object):
                 except Exception as ex:
                     raise Exception(f'GDB server binary {jlink_gdb_server_binary} not found! Checked {self._dott_ini}, '
                                     'default location and PATH. Giving up.') from None
-            log.info(f'GDB server binary:     {self._conf["gdb_server_binary"]}')
+            else:
+                self._conf['gdb_server_binary'] = None
+
+            gdb_srv_bin = self._conf['gdb_server_binary'] if self._conf['gdb_server_binary'] else 'undefined'
+            log.info(f'GDB server binary:     {gdb_srv_bin}')
         else:
             log.info('GDB server assumed to be already running (not started by DOTT).')
             self._conf['gdb_server_binary'] = None
@@ -450,6 +463,10 @@ class DottConf(object):
         jlink_script: str = 'jlink_script'
         jlink_extconf: str = 'jlink_extconf'
 
+        # PEMicro-specific settings
+        pemicro_port: str = 'pemicro_port'
+        pemicro_interface: str = 'pemicro_interface'
+
         # Application related settings
         bl_symbol_elf: str = 'bl_symbol_elf'
         bl_load_elf: str = 'bl_load_elf'
@@ -478,6 +495,10 @@ class DottConf(object):
     @staticmethod
     def get(key: str):
         return DottConf.conf.get(key)
+
+    @staticmethod
+    def get_runtime_path() -> str | None:
+        return DottConf.conf.get_runtime_path()
 
     @staticmethod
     def parse_config(force_reparse: bool = False) -> None:
