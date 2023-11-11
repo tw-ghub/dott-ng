@@ -386,7 +386,7 @@ def setup_dott_runtime():
         classifiers=shared_classifiers,
         install_requires=[
         ],
-        python_requires='>=3.6',
+        python_requires='>=3.10',
     )
 
 
@@ -409,7 +409,7 @@ def setup_dott_runtime_linux_amd64():
         include_package_data=True,
         shared_classifiers=shared_classifiers,
         install_requires=shared_install_requires,
-        python_requires='>=3.6',
+        python_requires='>=3.10',
     )
 
 
@@ -431,7 +431,7 @@ def setup_dott():
         include_package_data=False,
         classifiers=shared_classifiers,
         install_requires=shared_install_requires,
-        python_requires='>=3.6',
+        python_requires='>=3.10',
     )
 
 
