@@ -410,8 +410,7 @@ class CustomInstallCommandPEMicroLinuxAmd64(CustomInstallCommand):
             f.write(f'version: {self._pe_version_info}\n')
             f.write(f'downloaded from: {self._pe_url}\n')
             f.write(f'Note: To save space only selected parts of the full package have been included.\n'
-                    f'      No other modifications have been performed.\n'
-                    f'      The license \n')
+                    f'      No other modifications have been performed.\n')
 
     def finalize_options(self):
         super().finalize_options()
@@ -537,7 +536,7 @@ def setup_dott_runtime_pemicro_s32k():
         platforms=['Linux', 'nt'],
         include_package_data=True,
         shared_classifiers=shared_classifiers,
-        install_requires=[],
+        install_requires=['dott-ng-runtime>=1.1.0'],
         python_requires='>=3.10',
     )
 
