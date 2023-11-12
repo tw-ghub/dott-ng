@@ -238,8 +238,15 @@ class GdbServerPEMicro(GdbServer):
 
         if not self._srv_binary and dott_runtime_path:
             # No PE Micro gdb server binary specified in config. Check if it is installed as part of DOTT runtime.
-            bin_ext: str = '.exe' if os.name == 'nt' else ''
-            self._srv_binary = f'{dott_runtime_path}{os.sep}apps{os.sep}pemicro{os.sep}bin{os.sep}pegdbserver_console{bin_ext}'
+            if platform.system() == 'Windows':
+                os_path: str = 'win32'
+                bin_ext: str = '.exe'
+            elif platform.system() == 'Linux':
+                os_path: str = 'lin'
+                bin_ext: str = ''
+            else:
+                raise DottException('Only Windows and Linux are currently supported for PE Micro environments.')
+            self._srv_binary = f'{dott_runtime_path}{os.sep}apps{os.sep}pemicro{os.sep}{os_path}{os.sep}pegdbserver_console{bin_ext}'
 
         log.info(f'PE Micro GDB server binary:   {self._srv_binary}')
         if not os.path.exists(self._srv_binary):

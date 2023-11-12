@@ -206,7 +206,7 @@ class CustomInstallCommand(bdist_wheel):
 
         # we are done with unpacking. now we can set the correct data_files (in setup() this is too early)
         self.distribution.data_files = self._get_package_data_files()
-        super().run()
+        bdist_wheel.run(self)
 
     def finalize_options(self):
         super().finalize_options()
@@ -225,7 +225,6 @@ class CustomInstallCommand(bdist_wheel):
                 f = f.replace('\\\\', '/')
                 src_files.append(root + '/' + f)
             ret.append((root, src_files))
-
         return ret
 
 
@@ -311,6 +310,114 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
         #self.root_is_pure = False
         self.plat_name_supplied=True
         self.plat_name='manylinux2014_x86_64'
+
+class CustomInstallCommandPEMicroLinuxAmd64(CustomInstallCommand):
+
+    def __init__(self, dist):
+        super().__init__(dist, check_files=False)
+
+        mirror_url: str = os.environ.get('DEP_MIRROR_URL')
+
+        self._pe_url = 'https://www.pemicro.com/eclipse/updates/com.pemicro.debug.gdbjtag.pne.updatesite/5.7.5/plugins/com.pemicro.debug.gdbjtag.pne.expansion_5.7.5.202311071732.jar'
+        if mirror_url is not None:
+            # note: use local mirror (declared in build environment), if available
+            print(f'Using DEP_MIRROR_URL ({mirror_url}) for PEMicro download...')
+            self._pe_url = f'{mirror_url}/com.pemicro.debug.gdbjtag.pne.expansion_5.7.5.202311071732.jar'
+        self._pe_version_info = '5.7.5.202311071732'
+        self._pe_folder = os.path.join(CustomInstallCommandLinuxAmd64.data_apps_folder, 'pemicro')
+        self._pe_dload_file = 'pemicro.zip'
+        self._pe_dload_file_sha256 = 'bab6463b4ead601dafce69236a2e4d32906148ef74b143d2c44d85d8a876a3f6'
+        self._pe_dload_file_valid = False
+
+        self._check_dload_files()  # check if download files already exist and are valid
+
+    def run(self):
+        # dependency fetching
+        print('Fetching dependencies...')
+        print('  PE-Micro Eclipse plugin providing PE-Micro GDB Server', end='')
+        sys.stdout.flush()
+
+        if not self._pe_dload_file_valid:
+            with urllib.request.urlopen(self._pe_url, context=ssl.SSLContext()) as u, open (self._pe_dload_file, 'wb') as f:
+                f.write(u.read())
+
+
+        print(' [done]')
+
+        if not self._check_dload_files():
+            print("Downloaded files could not be verified (checksums don't match)")
+            sys.exit(-1)
+
+        # dependency unpacking
+        print('Unpacking dependencies...')
+        print('  Unpacking PE-Micro Eclipse Plugin...', end='')
+        sys.stdout.flush()
+        self._unpack_pe()
+        print('  [done]')
+
+        # write runtime apps version
+        self._write_version()
+
+        # we are done with unpacking. now we can set the correct data_files (in setup() this is too early)
+        self.distribution.data_files = self._get_package_data_files()
+        bdist_wheel.run(self)
+
+
+    def _write_version(self):
+        global build_version
+        with open(os.path.join(self._pe_folder, 'version.txt'), 'w+') as f:
+            f.write(f'DOTT PE-Micro runtime apps\n')
+            f.write(f'version: {build_version}\n')
+
+    def _check_dload_files(self) -> bool:
+        if os.path.exists(self._pe_dload_file):
+            f = open(self._pe_dload_file, "rb")
+            data = f.read()
+            file_hash = hashlib.sha256(data).hexdigest()
+            if self._pe_dload_file_sha256 == file_hash:
+                print(f'{self._pe_dload_file} exists and has valid checksum')
+                self._pe_dload_file_valid = True
+            else:
+                print(f'Removing corrupt {self._pe_dload_file}.')
+                os.remove(self._pe_dload_file)
+
+        return self._pe_dload_file_valid
+
+    def _unpack_pe(self):
+        pe_files = ('lin/pegdbserver_console',
+                    'win32/pegdbserver_console',
+                    'lin/gdi',
+                    'win32/gdi',
+                    'S32K',
+                    'rtos_stack_list.xml',
+                    'target_riscv.xml',
+                    'target_v6m_no_vfp.xml',
+                    'target_v7m_no_vfp.xml',
+                    'target_v7m_vfp.xml',
+                    'target_v8a_no_vfp.xml',
+                    'target_v8m_vfp_no_se.xml',
+                    'target_v8m_vfp_se.xml')
+
+        with ZipFile(self._pe_dload_file, 'r') as zipObj:
+            file_names = zipObj.namelist()
+            for file_name in file_names:
+                for pe_file in pe_files:
+                    if pe_file in file_name:
+                        zipObj.extract(file_name, self._pe_folder)
+
+        with open(os.path.join(self._pe_folder, 'version.txt'), 'w+') as f:
+            f.write(f'GDB and support tools extracted from GNU Arm Embedded Toolchain.\n')
+            f.write(f'version: {self._pe_version_info}\n')
+            f.write(f'downloaded from: {self._pe_url}\n')
+            f.write(f'Note: To save space only selected parts of the full package have been included.\n'
+                    f'      No other modifications have been performed.\n'
+                    f'      The license \n')
+
+    def finalize_options(self):
+        super().finalize_options()
+        #self.root_is_pure = False
+        self.plat_name_supplied=False
+        # self.plat_name='any'
 
 
 def _set_execperms_in_whl(dir: str, pattern: str):
@@ -412,6 +519,27 @@ def setup_dott_runtime_linux_amd64():
         python_requires='>=3.10',
     )
 
+def setup_dott_runtime_pemicro_s32k():
+    setuptools.setup(
+        cmdclass={
+            'bdist_wheel': CustomInstallCommandPEMicroLinuxAmd64,
+        },
+        name="dott-ng-pemicro-s32k-runtime",
+        version='5.7.5',
+        author=shared_author,
+        author_email=shared_author_email,
+        description="Runtime Environment Extension for PE-Micro for Debugger-based on Target Testing (DOTT)",
+        long_description="",
+        long_description_content_type="text/markdown",
+        url=shared_url,
+        packages=[],
+        data_files=[],
+        platforms=['Linux', 'nt'],
+        include_package_data=True,
+        shared_classifiers=shared_classifiers,
+        install_requires=[],
+        python_requires='>=3.10',
+    )
 
 def setup_dott():
     setuptools.setup(
@@ -445,5 +573,9 @@ elif '--dott-runtime-linux-amd64' in sys.argv:
     sys.argv.remove('--dott-runtime-linux-amd64')
     setup_dott_runtime_linux_amd64()
     _set_execperms_in_whl(os.path.join(os.path.dirname(__file__), 'dist'), '/bin/')
+elif '--dott-runtime-pemicro-s32k' in sys.argv:
+    sys.argv.remove('--dott-runtime-pemicro-s32k')
+    setup_dott_runtime_pemicro_s32k()
+    _set_execperms_in_whl(os.path.join(os.path.dirname(__file__), 'dist'), '/lin/')
 else:
     setup_dott()
