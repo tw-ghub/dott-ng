@@ -523,7 +523,7 @@ def setup_dott_runtime_pemicro_s32k():
         cmdclass={
             'bdist_wheel': CustomInstallCommandPEMicroLinuxAmd64,
         },
-        name="dott-ng-pemicro-s32k-runtime",
+        name="dott-ng-runtime-pemicro-s32k",
         version='5.7.5',
         author=shared_author,
         author_email=shared_author_email,
