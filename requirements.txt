@@ -4,7 +4,7 @@
 # The following list of requirements is more intended to get you stared (most probably in a venv) when you plan to
 # work on DOTT itself (i.e., add new features, fix bugs, ...)
 dott-ng-runtime==1.1
-pygdbmi==0.10.0.1
+pygdbmi==0.11.0.0
 pylink-square
 pytest
 
