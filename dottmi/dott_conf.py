@@ -318,7 +318,9 @@ class DottConfExt(object):
                 log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
         if 'gdb_client_binary' not in self._conf:
-            default_gdb = 'arm-none-eabi-gdb-py'
+            default_gdb = 'arm-none-eabi-gdb-py.exe'
+            if platform.system() == 'Linux':
+                default_gdb = 'arm-none-eabi-gdb-py'
             self._conf['gdb_client_binary'] = str(Path(f'{os.environ["DOTTGDBPATH"]}/{default_gdb}'))
         log.info(f'GDB client binary:     {self._conf["gdb_client_binary"]}')
 
