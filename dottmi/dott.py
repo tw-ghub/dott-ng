@@ -106,8 +106,8 @@ class Dott(object):
         ignored. Instead, the GDB server for the default target (according to the settings in DottConf) is (re-)created.
         As create_gdb_server() will be deprecated, use dott().target.monitor.create_gdb_server() instead.
         Args:
-            device_name: Ingores. Taken from default DottDoncf().
-            jlink_serial: Ingored. Taken from default DottDoncf().
+            device_name: Ignored. Taken from default DottDoncf().
+            jlink_serial: Ignored. Taken from default DottDoncf().
             srv_addr: Ignored. Taken from default DottDoncf().
             srv_port:  Ignored. Taken from default DottDoncf().
 

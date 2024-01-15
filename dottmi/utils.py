@@ -44,10 +44,10 @@ def DOTT_LABEL(name: str) -> str:
 
 # -------------------------------------------------------------------------------------------------
 # used as decorator to implement singleton pattern
-def singleton(cls, *args, **kw):
+def singleton(cls):
     instances = {}
 
-    def _singleton():
+    def _singleton(*args, **kw):
         if cls not in instances:
             instances[cls] = cls(*args, **kw)
         return instances[cls]
