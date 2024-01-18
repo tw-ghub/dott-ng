@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -250,7 +250,7 @@ class Target(NotifySubscriber):
     ###############################################################################################
     # General-purpose wrappers for on target command execution/evaluation
 
-    def eval(self, expr: str, timeout: float = None) -> Union[int, float, bool, str, None]:
+    def eval(self, expr: str, timeout: float | None = None) -> Union[int, float, bool, str, None]:
         """
         This method takes an expression to be evaluated. It is assumed that the target is halted when calling eval.
         An expression is every valid expression in the current program context such as registers, local or global
@@ -289,13 +289,13 @@ class Target(NotifySubscriber):
     def exec_noblock(self, cmd: str) -> int:
         return self._gdb_client.gdb_mi.write_non_blocking(cmd)
 
-    def cli_exec(self, cmd: str, timeout: float = None) -> Dict:
+    def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
 
     ###############################################################################################
     # Execution-related target commands
 
-    def load(self, load_elf_file_name: str, symbol_elf_file_name: str = None, enable_flash: bool = False) -> None:
+    def load(self, load_elf_file_name: str, symbol_elf_file_name: str | None = None, enable_flash: bool = False) -> None:
         self._load_elf_file_name = load_elf_file_name
         self._symbol_elf_file_name = symbol_elf_file_name
 
@@ -326,7 +326,7 @@ class Target(NotifySubscriber):
         self.exec('-exec-continue')
         self.wait_running()
 
-    def ret(self, ret_val: Union[int, str] = None) -> None:
+    def ret(self, ret_val: Union[int, str] | None= None) -> None:
         if ret_val is None:
             self.exec('-exec-return')
         else:
@@ -421,7 +421,7 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             return self._is_target_running
 
-    def wait_halted(self, wait_secs: float = None) -> None:
+    def wait_halted(self, wait_secs: float | None = None) -> None:
         """
         Wait until target is halted. The wait_halted command is typically not needed in user code as halt ensures that
         the target is halted when it returns.
@@ -438,7 +438,7 @@ class Target(NotifySubscriber):
             if self._is_target_running:
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
 
-    def wait_running(self, wait_secs: float = None) -> None:
+    def wait_running(self, wait_secs: float | None = None) -> None:
         """
         Wait until target is running. The wait_running command is typically not needed in user code as cont ensures that
         the target is running when it returns.
@@ -476,13 +476,13 @@ class Target(NotifySubscriber):
     ###############################################################################################
     # Register-related target commands
 
-    def reg_get_content(self, fmt: str = 'x', regs: List = None) -> Dict:
+    def reg_get_content(self, fmt: str = 'x', regs: List | None = None) -> Dict:
         if regs is None:
             regs = []
         res = self.exec('-data-list-register-values --skip-unavailable %s %s' % (fmt, ' '.join(str(r) for r in regs)))
         return res['payload']['register-values']
 
-    def reg_get_names(self, regs: List = None) -> Dict:
+    def reg_get_names(self, regs: List | None = None) -> Dict:
         if regs is None:
             regs = []
         res = self.exec('-data-list-register-names %s' % ' '.join(str(r) for r in regs))
