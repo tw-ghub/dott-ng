@@ -587,7 +587,8 @@ class TargetMemScoped(object):
             res = dott().target.eval(f'example_SumElements({addr}, {len(elements)})')
             assert (sum(elements) == res), f'expected: {sum(elements)}, is: {res}'
     """
-    def __init__(self, target: Target, num_bytes: int, suppress_warnings: bool = False):
+    def __init__(self, target: Target, num_bytes: int, suppress_warnings: bool = False,
+                 suppress_alignment_warnings: bool = True):
         """
         Constructor.
 
@@ -597,6 +598,9 @@ class TargetMemScoped(object):
                      increased to the next value where num_bytes % 8 == 0 to ensure double-world alignment of the stack.
             suppress_warnings: Suppress warnings which would be issued if the SP and PC are not having the expected
                      values when leaving the 'with ... as' block.
+            suppress_alignment_warnings: Supress warnings related to double word stack alignment (as defined for stack
+                     arguments in the Arm calling convention). Since the (initial) alignment is taken care of by default
+                     by DOTT, this warning is suppressed by default.
         """
         self._target: Target = target
         self._pc_init: int = 0x0  # the program counter upon entering the 'with' block
@@ -609,6 +613,7 @@ class TargetMemScoped(object):
             num_bytes += 8 - (num_bytes % 8)
         self._num_bytes: int = num_bytes  # the size in bytes of the on-target memory chunk
         self._suppress_warnings: bool = suppress_warnings
+        self._suppress_alignment_warnings: bool = suppress_alignment_warnings
 
     def __enter__(self) -> TargetMem:
         if self._target.is_running():
@@ -625,7 +630,8 @@ class TargetMemScoped(object):
         if self._sp_init_dec % 8 != 0:
             # Arm 'Procedure Call Standard for the Arm Architecture' requires double-word alignment on
             # 'public interface' (i.e., when calling functions).
-            log.warn('Current SP is not double-word aligned! Correcting alignment for allocated memory.')
+            if not self._suppress_alignment_warnings:
+                log.warn('Current SP is not double-word aligned! Correcting alignment for allocated memory.')
             self._sp_init_dec -= (self._sp_init_dec % 8)
 
         # (3) decrement SP
@@ -649,13 +655,13 @@ class TargetMemScoped(object):
             sp_pc_ok = False
             if not self._suppress_warnings:
                 log.warn(f'Stack pointer is not as expected (expected: 0x{self._sp_init_dec:x}, act: 0x{sp_curr:x}). '
-                         f'You should not alter execution flow within "with" block os scoped memory by using DOTT '
+                         f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
                          f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
         if pc_curr != self._pc_init:
             sp_pc_ok = False
             if not self._suppress_warnings:
                 log.warn(f'Program counter is not as expected (expected: 0x{self._pc_init:x}, actual: 0x{pc_curr:x}). '
-                         f'You should not alter execution flow within "with" block os scoped memory by using DOTT '
+                         f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
                          f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
 
         if sp_pc_ok:
