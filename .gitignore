@@ -19,3 +19,5 @@
 *.jar
 *.exe
 *.deb
+*.dat
+**/venv_*
