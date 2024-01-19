@@ -42,6 +42,7 @@ class TestTargetCreation:
         # create custom target and set config options
         dconf = DottConfExt()
         dconf.set(DottConf.keys.monitor_type, 'jlink')
+        dconf.set(DottConf.keys.jlink_serial, DottConf.get(DottConf.keys.jlink_serial))
         dconf.set(DottConf.keys.device_name, 'stm32f072rb')
         dconf.parse_config()  # validates config settings and sets missing settings to defaults; must be called before
                               # passing config to create_target()
@@ -66,6 +67,7 @@ class TestTargetCreation:
         # create 1st custom target and set config options
         dconf1 = DottConfExt()
         dconf1.set(DottConf.keys.monitor_type, 'jlink')
+        dconf1.set(DottConf.keys.jlink_serial, DottConf.get(DottConf.keys.jlink_serial))
         dconf1.set(DottConf.keys.device_name, 'stm32f072rb')
         dconf1.parse_config(silent=False)  # parse_config output can also be silenced by setting silent=True
         t1 = d.create_target(dconf1)
@@ -73,6 +75,7 @@ class TestTargetCreation:
         # create 2nd custom target and set config options
         dconf2 = DottConfExt()
         dconf2.set(DottConf.keys.monitor_type, 'jlink')
+        dconf2.set(DottConf.keys.jlink_serial, DottConf.get(DottConf.keys.jlink_serial))
         dconf2.set(DottConf.keys.device_name, 'stm32f072rb')
         dconf2.parse_config(silent=False)
         t2 = d.create_target(dconf2)
