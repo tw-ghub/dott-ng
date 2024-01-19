@@ -154,7 +154,7 @@ class Dott(object):
         # add target to list of created targets to enable proper cleanup on shutdown
         if target:
             self._all_targets.append(target)
-            # if there is no default target yet, the new target is set as default (returned with target proeprty)
+            # if there is no default target yet, the new target is set as default (returned with target property)
             if not self._default_target:
                 self._default_target = target
         return target
@@ -171,14 +171,19 @@ class Dott(object):
             raise DottException('No default target available!')
         return self._default_target
 
-    def set_default_target(self, target: Target) -> None:
+    @target.setter
+    def target(self, target: Target) -> None:
         """
-        Allows to set (override) the default target for the Dott singleton.
+        Prevents setting (overriding) the default target for the Dott singleton. The default target is the one which
+        was created as first target.
 
         Args:
             target: Target instance to be set as default target.
+
+        Raises:
+            DottException
         """
-        self._default_target = target
+        raise DottException('Target can not be set directly.')
 
     def shutdown(self) -> None:
         """

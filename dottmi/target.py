@@ -96,7 +96,7 @@ class Target(NotifySubscriber):
         self._gdb_client_is_connected = False
 
         if auto_connect:
-                self.gdb_client_connect()
+            self.gdb_client_connect()
 
     def gdb_client_connect(self) -> None:
         """
