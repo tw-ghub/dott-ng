@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -329,5 +329,10 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "dott_mem: marker to select on-target memory allocation model")
 
 
-def pytest_collection_finish():
+def pytest_collection_finish() -> None:
+    """
+    If you are using the default target in your set setup you may want to import this function in your pytest
+    conftest.py file. This initializes the default target and ensures that the DottConf output is printed before the
+    first test is run.
+    """
     dott()

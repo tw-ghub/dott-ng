@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import socket
 
 import pigpio
 
-from dottmi.dott import dott
-from dottmi.fixtures import dott_auto_func_cleanup, target_reset_common, pytest_collection_finish, pytest_configure
+from dottmi.dott import dott, Dott
+from dottmi.fixtures import dott_auto_func_cleanup, target_reset_common, pytest_configure
 # set working directory to the folder which contains this conftest file
 import pytest
 

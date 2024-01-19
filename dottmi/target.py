@@ -25,6 +25,7 @@ import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
+import dottmi.utils
 from dottmi.dott import DottHooks
 from dottmi.dott_conf import DottConf, DottConfExt
 
@@ -191,6 +192,10 @@ class Target(NotifySubscriber):
     @property
     def dconf(self) -> DottConf:
         return self._dconf
+
+    @property
+    def log(self) -> logging.Logger:
+        return dottmi.utils.log
 
     @property
     def gdb_client(self) -> GdbClient:

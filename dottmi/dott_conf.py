@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -34,12 +34,26 @@ from dottmi.target_mem import TargetMemModel
 from dottmi.utils import log
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-# DOTT configuration registry. Data is read in from dott ini file. Additional settings can be made via
-# project specific conftest files.
 class DottConfExt(object):
+    """
+    This class represents a DOTT configuration. Most configuration parameters are used to configure target parameters.
+    Hence, when creating a new target a DottConfExt instance needs to be provided as input.
+
+    Creation of a DottConfExt instance is a two-step process: (1) key/value pairs can be set programmatically from
+    Python code. (2) By calling the parse_config() method, an optional dott.ini is read from the current work
+    directory (cwd). parse_config() fills in key/value pairs from the dott.ini and performs parameter validation.
+    key/value pairs from dott.ini always have lower priority than key/value pairs programmatically set prior to
+    calling parse_config().
+    """
 
     def __init__(self, ini_file='dott.ini') -> None:
+        """
+        Constructor.
+
+        Args:
+            ini_file: Alternative name for DOTT ini file. Ini file is expected to be located in current work directory
+            (or relative to it).
+        """
         self._conf = {}
         self._dott_runtime = None
         self._dott_runtime_path: str | None = None
@@ -47,19 +61,46 @@ class DottConfExt(object):
         self._dott_ini = ini_file
         self.conf = self
 
-    def set(self, key: str, val: str) -> None:
+    def set(self, key: str, val: str | None) -> None:
+        """
+        Set a key / value pair in the configuration object.
+
+        Args:
+            key: Key to set. Should be a key from DottConf.keys
+            val: Value to be set for key.
+        """
         self._conf[key] = val
 
+    def get(self, key: str) -> str | int | None:
+        """
+        Returns the value for the given key.
+
+        Args:
+            key: A key which exists in the configuration object. Should be a key form DottConf.keys.
+
+        Returns: The value for the given key or None if the key does not exist.
+        """
+        return self._conf[key] if key in self._conf.keys() else None
+
     def set_runtime_if_unset(self, dott_runtime_path: str) -> None:
+        """
+        Sets the DOTTRUNTIME environment variable if it is not already set.
+        This allows to set / override the runtime used by DOTT. Note: Doing this manually is typically not required
+        in production environments where the DOTT runtime is installed via pip. It is typically used in development
+        environments.
+
+        Args:
+            dott_runtime_path: Path where alternative DOTT runtime is located.
+        """
         if not os.path.exists(dott_runtime_path):
             raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
         if os.environ.get('DOTTRUNTIME') is None:
             os.environ['DOTTRUNTIME'] = dott_runtime_path
 
-    def get(self, key: str) -> str | int | None:
-        return self._conf[key] if key in self._conf.keys() else None
-
     def get_runtime_path(self) -> str | None:
+        """
+        Returns the path of the DOTT runtime as used by DOTT.
+        """
         return self._dott_runtime_path
 
     def __getitem__(self, key) -> Union[int, str, None]:
@@ -154,10 +195,28 @@ class DottConfExt(object):
 
         return jlink_path, segger_lib_name, jlink_version
 
-    def parse_config(self, force_reparse: bool = False) -> None:
+    def parse_config(self, force_reparse: bool = False, silent: bool = False) -> None:
+        """
+        This function parses the DOTT configuration from received via two sources: (1) Values already set
+        programmatically in the DottConfExt instance. (2) dott.ini in current work directory (cwd). If this file exists
+        it is read and parsed. If it does not exist, reading is skipped.
+        Key/value pairs already present in DottConfExt from step (1) are not overwritten with values from step (2) even
+        if they have identical keys. That is, key/value pairs set programmatically take precedence over values set in
+        dott.ini.
+
+        Args:
+            force_reparse: Forces a re-parsing of the configuration. By default, parse_config returns immediately if
+                           parsing has already been performed.
+            silent: Turns off all output otherwise generated by parse_config.
+        """
         if self._parsed and not force_reparse:
             return
         self._parsed = True
+
+        # disable log propagation if requested by caller
+        orig_log_propagate: bool = log.propagate
+        if silent:
+            log.propagate = False
 
         # setup runtime environment
         self._setup_runtime()
@@ -194,7 +253,7 @@ class DottConfExt(object):
             if not ini.has_section(dott_section):
                 raise Exception(f'Unable to find section DOTT in {self._dott_ini}')
 
-            # create an in-memory copy of the DOTT section of the init file
+            # create an in-memory copy of the DOTT section of the ini file
             conf_tmp = dict(ini[dott_section].items())
 
         else:
@@ -426,18 +485,24 @@ class DottConfExt(object):
 
         if self._conf['on_target_mem_model'] == TargetMemModel.PRESTACK:
             log.info(f'Std. target mem model for DOTT default fixtures:  {self._conf["on_target_mem_model"]} '
-                 f'({on_target_mem_prestack_alloc_size}bytes '
-                 f'@{on_target_mem_prestack_alloc_location}; '
-                 f'halt @{on_target_mem_prestack_halt_location}; '
-                 f'total stack: {on_target_mem_prestack_total_stack_size if on_target_mem_prestack_total_stack_size is not None else "unknown"})')
+                     f'({on_target_mem_prestack_alloc_size}bytes '
+                     f'@{on_target_mem_prestack_alloc_location}; '
+                     f'halt @{on_target_mem_prestack_halt_location}; '
+                     f'total stack: {on_target_mem_prestack_total_stack_size if on_target_mem_prestack_total_stack_size is not None else "unknown"})')
         else:
             log.info(f'Std. target mem model for DOTT default fixtures:  {self._conf["on_target_mem_model"]}')
 
+        # restore log propagation to previous state if silent was requested
+        if silent:
+            log.propagate = orig_log_propagate
+
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Global, static DottConf that is used as default for single-target test environments. This was the standard way to
-# configure DOTT prior to the introduction of the non-Static DottConfExt.
 class DottConf(object):
+    """
+    Global, static DottConf that is used as default for single-target test environments. This was the standard way to
+    configure DOTT prior to the introduction of the non-static DottConfExt.
+    """
     conf = DottConfExt()
 
     class keys(object):
@@ -488,26 +553,33 @@ class DottConf(object):
 
     @staticmethod
     def set(key: str, val: str) -> None:
+        """See get method in :func:`DottConfExt.set`."""
         DottConf.conf.set(key, val)
 
     @staticmethod
     def set_runtime_if_unset(dott_runtime_path: str) -> None:
+        """See get method in :func:`DottConfExt.set_runtime_if_unset`."""
         DottConf.conf.set_runtime_if_unset(dott_runtime_path)
 
     @staticmethod
     def get(key: str):
+        """See get method in :func:`DottConfExt.get`."""
         return DottConf.conf.get(key)
 
     @staticmethod
     def get_runtime_path() -> str | None:
+        """See get method in :func:`DottConfExt.get_runtime_path`."""
         return DottConf.conf.get_runtime_path()
 
     @staticmethod
     def parse_config(force_reparse: bool = False) -> None:
+        """See get method in :func:`DottConfExt.get_runtime_path`."""
         return DottConf.conf.parse_config(force_reparse)
 
     @staticmethod
     def log(key, val):
+        """
+        Logs key value pairs and indents values to a pre-defined (fixed) level.
+        """
         key += ':'
         log.info(f'{key:25} {val}')
-

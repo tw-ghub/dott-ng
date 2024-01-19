@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ class DottHooks(object):
         if cls._gdb_pre_connect_hook is not None:
             cls._gdb_pre_connect_hook(target)
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 @singleton
 class Dott(object):
@@ -78,9 +79,15 @@ class Dott(object):
         Initialize the DOTT framework. Note: This class is a singleton. Hence, repetitive attempts to instantiate this
         class will return the same singleton instance.
 
+        For a single-core system, the default target is used to access the CPU. In a multicore environment, the default
+        target can still be used for the primary CPU while targets for the other CPU cores can be created via the
+        create_target() method based on a CPU-specific DOTT config. Alternatively also the creation of the default
+        target can be skipped (see create_default_target argument). In this case all targets are created using
+        create_target.
+
         Args:
             create_default_target: If True (default) the default target is generated automatically, otherwise this step
-                                   is skipped.
+                                   is skipped. Not that setting this flag to true also slips the parsing of DottConf.
         """
         self._default_target = None
         self._all_targets: List = []
@@ -88,39 +95,19 @@ class Dott(object):
         # initialize logging subsystem
         log_setup()
 
-        # read and pre-process configuration file
-        DottConf.parse_config()
-
-        # the port number used by the internal auto port discovery; discovery starts at config's gdb server port
-        self._next_gdb_srv_port: int = int(DottConf.get(DottConf.keys.gdb_server_port))
-
-        # Hook called before the first debugger connection is made
-        DottHooks.exec_pre_connect_hook()
-
         if create_default_target:
+            # read and pre-process configuration file
+            DottConf.parse_config()
+
+            # Hook called before the first debugger connection is made when using the default target.
+            DottHooks.exec_pre_connect_hook()
+
             self._default_target = self.create_target(DottConf())
-
-    def create_gdb_server(self, device_name: str, jlink_serial: str = None, srv_addr: str = None, srv_port: int = -1) -> 'GdbServer':
-        """
-        This method is DEPRECATED and will be removed with the next major release! The parameters passed to this method are already
-        ignored. Instead, the GDB server for the default target (according to the settings in DottConf) is (re-)created.
-        As create_gdb_server() will be deprecated, use dott().target.monitor.create_gdb_server() instead.
-        Args:
-            device_name: Ignored. Taken from default DottDoncf().
-            jlink_serial: Ignored. Taken from default DottDoncf().
-            srv_addr: Ignored. Taken from default DottDoncf().
-            srv_port:  Ignored. Taken from default DottDoncf().
-
-        Returns:
-            GdbServer instance.
-        """
-        from dottmi.utils import log
-        log.warn('create_gdb_server() will be deprecated in a forthcoming release. Port your code to used dott().target.monitor.create_gdb_server() instead!')
-        return dott().target.monitor.create_gdb_server(DottConf())
 
     def create_target(self, dconf: [DottConf | DottConfExt]) -> Target:
         """
-        Creates and retunrs a target object according to the settings of the provided DottConf instance.
+        Creates and returns a target object according to the settings of the provided DottConf instance.
+        If the Dott() singleton does not have a default target yet, the newly created target is set as default target.
 
         Args:
             dconf: DottConf instance used to configure the target instance.
@@ -167,6 +154,9 @@ class Dott(object):
         # add target to list of created targets to enable proper cleanup on shutdown
         if target:
             self._all_targets.append(target)
+            # if there is no default target yet, the new target is set as default (returned with target proeprty)
+            if not self._default_target:
+                self._default_target = target
         return target
 
     @property
@@ -177,17 +167,18 @@ class Dott(object):
         Returns:
             The default target instance.
         """
+        if not self._default_target:
+            raise DottException('No default target available!')
         return self._default_target
 
-    @target.setter
-    def target(self, target: object) -> None:
+    def set_default_target(self, target: Target) -> None:
         """
         Allows to set (override) the default target for the Dott singleton.
 
         Args:
             target: Target instance to be set as default target.
         """
-        raise ValueError('Target can not be set directly.')
+        self._default_target = target
 
     def shutdown(self) -> None:
         """
@@ -200,5 +191,5 @@ class Dott(object):
 
 # ----------------------------------------------------------------------------------------------------------------------
 # For backwards compatibility reasons the Dott() singleton can also be accessed via the all lowercase dott function.
-def dott() -> Dott:
-    return Dott()
+def dott(create_default_target: bool = True) -> Dott:
+    return Dott(create_default_target)
