@@ -104,13 +104,15 @@ class Dott(object):
 
             self._default_target = self.create_target(DottConf())
 
-    def create_target(self, dconf: [DottConf | DottConfExt]) -> Target:
+    def create_target(self, dconf: [DottConf | DottConfExt], set_as_default_if_none: bool = True) -> Target:
         """
         Creates and returns a target object according to the settings of the provided DottConf instance.
-        If the Dott() singleton does not have a default target yet, the newly created target is set as default target.
+        If the Dott() singleton does not have a default target yet (default target is None), the newly created
+        target is set as default target (can be omitted with set_as_default_as_none).
 
         Args:
             dconf: DottConf instance used to configure the target instance.
+            set_as_default_if_none: Sets this target as default target if there is no default target yet.
 
         Returns:
             Target instance configured according to dconf.
@@ -154,8 +156,9 @@ class Dott(object):
         # add target to list of created targets to enable proper cleanup on shutdown
         if target:
             self._all_targets.append(target)
-            # if there is no default target yet, the new target is set as default (returned with target property)
-            if not self._default_target:
+            # If there is no default target yet, the new target is set as default (returned via target property)
+            # Can be skipped by setting set_as_default_if_none=False.
+            if not self._default_target and set_as_default_if_none:
                 self._default_target = target
         return target
 

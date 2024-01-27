@@ -447,7 +447,12 @@ class TargetMem(object):
 
         Returns:
             Returns the address of the allocated on-target memory as a TypedPtr.
+
+        Raises: ValueError if a number of less than or eqal to zero was requested.
         """
+        if req_num_bytes <= 0:
+            raise ValueError('Alloc expects a positive number of bytes to be allocated.')
+
         align_delta: int = 0
         if self._heap_next_free_addr % align != 0:
             align_delta = align - (self._heap_next_free_addr % align)
