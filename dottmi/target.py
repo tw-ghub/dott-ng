@@ -378,7 +378,7 @@ class Target(NotifySubscriber):
     # Status-related target commands
 
     # This callback function is called from gdbmi response handler when a new notification
-    # with at target status change notification is received.
+    # with a target status change notification is received.
     def _notify_callback(self):
         # Note: The wait_for_notification call immediately returns the new message as _notify_callback was called
         # by the notifier upon the availability of the new message. Hence, no actual waiting here.

@@ -13,5 +13,11 @@
 **/dist
 *.pyc
 *.bz2
+*.gz
+*.7z
+*.zip
 *.deb
+*.jar
+*.exe
+**/venv_*
 examples/jlink_log.txt
