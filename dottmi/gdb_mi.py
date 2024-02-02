@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,16 +15,22 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
+import os
 import queue
 import threading
-from pprint import pprint
 from typing import Dict
 
 from pygdbmi.gdbcontroller import GdbController
 
 from dottmi.dottexceptions import DottException
-from dottmi.utils import BlockingDict, log
+from dottmi.utils import BlockingDict, log, InMemoryDebugCapture
+
+
+class GdbMiDebugCapture(InMemoryDebugCapture):
+    """
+    Captures GDB MI commands sent to GDB and responses received from GDB in an in-memory (RAM) buffer.
+    """
+    enabled: bool = True if os.environ.get('DOTT_DEBUG_GDBMI') else False
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -137,6 +143,8 @@ class GdbMi(object):
         token = self._get_next_mi_token()
         if self._trace_commands:
             log.debug(f'{token}         gdb write: {cmd}')
+        if GdbMiDebugCapture.enabled:
+            GdbMiDebugCapture.record(f'[TO GDB] {token} {cmd}')
         try:
             self._mi_controller.write("%d%s" % (token, cmd), read_response=False)
         except IOError:
@@ -230,12 +238,17 @@ class GdbMiResponseHandler(threading.Thread):
 
                 if not threading.main_thread().is_alive():
                     self._running = False
+                    # Dump in-memory capture at program termination.
+                    if GdbMiDebugCapture.enabled:
+                        GdbMiDebugCapture.dump()
                     continue
 
                 for msg in messages:
                     msg_type = str(msg['type']).lower()
                     if self._trace_commands:
                         log.debug('[MSG] %s' % msg)
+                    if GdbMiDebugCapture.enabled:
+                        GdbMiDebugCapture.record('  [FROM GDB] %s' % msg)
 
                     if msg_type == 'result':
                         msg_token = -1
@@ -244,7 +257,6 @@ class GdbMiResponseHandler(threading.Thread):
                             # log.debug('[MSG] %s' % msg)
                         else:
                             log.warn('result w/o token: ')
-                            pprint(msg)
                         self._response_dicts['result'].put(msg_token, msg)
 
                     elif msg_type == 'console':
@@ -273,7 +285,7 @@ class GdbMiResponseHandler(threading.Thread):
                         if 'reason' in msg['payload']:
                             notify_reason = msg['payload']['reason']
                             if type(notify_reason) is list and 'breakpoint-hit' in notify_reason:
-                                # Special case for OpenOCD which returns a list ['signal-received', ''breakpoint-hit]
+                                # Special case for OpenOCD which returns a list ['signal-received', 'breakpoint-hit']
                                 # instead of just 'breakpoint-hit'.
                                 notify_reason = 'breakpoint-hit'
                                 msg['payload']['reason'] = notify_reason
