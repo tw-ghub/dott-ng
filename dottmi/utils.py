@@ -17,9 +17,11 @@
 ###############################################################################
 
 import logging
+import os
 import struct
 import threading
-from typing import Union, List
+from collections import deque
+from typing import Union, List, Any
 
 from dottmi.dottexceptions import DottException
 
@@ -519,3 +521,31 @@ class Network(object):
             # wrap around for next invocation
             cls._next_gdb_srv_port = 2331
         return start_port
+
+
+class InMemoryDebugCapture:
+    """
+    In-memory debug capture records provided entries in a memory (RAM) buffer.
+    It does not immediately print the recorded entries and therefore reduces the impact on runtime timing. This might
+    be important for low-level problem analysis. Capturing is done in a circular buffer of pre-defined size.
+    """
+    _capture_queue: deque = deque(maxlen=40)
+
+    enabled: bool = False
+
+    @classmethod
+    def record(cls, entry: Any) -> None:
+        """
+        Records the provided entry in the internal queue.
+        :param entry: Entry to be added to the capture queue.
+        """
+        cls._capture_queue.append(entry)
+
+    @classmethod
+    def dump(cls) -> None:
+        """
+        Dumps (prints) the recorded entries. If running in pytest this might require "-s" command line option.
+        """
+        print(f'{os.linesep}{os.linesep}-------- Debug Capture Dump --------{os.linesep}')
+        for entry in cls._capture_queue:
+            print(entry)
