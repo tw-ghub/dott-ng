@@ -291,16 +291,14 @@ class GdbMiResponseHandler(threading.Thread):
                                 msg['payload']['reason'] = notify_reason
 
                         already_notified = []
+                        if (notify_msg, notify_reason) in self._notify_subscribers:
+                            for subscriber in self._notify_subscribers[(notify_msg, notify_reason)]:
+                                subscriber.notify(msg)
+                                already_notified.append(subscriber)
                         if (notify_msg, None) in self._notify_subscribers:
                             for subscriber in self._notify_subscribers[(notify_msg, None)]:
                                 if subscriber not in already_notified:
-                                    subscriber.notify(msg, own_thread=False)
-                                    already_notified.append(subscriber)
-                        if (notify_msg, notify_reason) in self._notify_subscribers:
-                            for subscriber in self._notify_subscribers[(notify_msg, notify_reason)]:
-                                if subscriber not in already_notified:
-                                    subscriber.notify(msg, own_thread=True)
-                                    already_notified.append(subscriber)
+                                    subscriber.notify(msg)
 
                         # if there are no subscribers for this notification it is stored in a dict for later analysis
                         if len(already_notified) == 0:
@@ -328,15 +326,12 @@ class NotifySubscriber(object):
     def __init__(self):
         self._notifications: queue.Queue = queue.Queue()
 
-    def notify(self, msg: Dict, own_thread: bool = True) -> None:
+    def notify(self, msg: Dict) -> None:
         self._notifications.put(msg)
         # Note: Callback handlers are executed in own thread to ensure that main gdbmi thread is not blocked. This is
         # important as callback handlers can issue their own GDB requests which might lead to deadlocks if callback
         # handlers are called in gdbmi context.
-        if own_thread:
-            threading.Thread(target=self._notify_callback).start()
-        else:
-            self._notify_callback()
+        threading.Thread(target=self._notify_callback).start()
 
     def _notify_callback(self):
         pass
