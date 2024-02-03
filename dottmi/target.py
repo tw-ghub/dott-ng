@@ -21,7 +21,6 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 import logging
 import os
 import threading
-import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
@@ -391,30 +390,18 @@ class Target(NotifySubscriber):
         notify_msg = msg['message']
         with self._cv_target_state:
             if 'stopped' in notify_msg:
+                dottmi.gdb_mi.GdbMiDebugCapture.record(f'[TARGET STOPPED] {msg}')
                 # Note: The call to _wait_until_halted is needed here since a 'stopped' notification from GDB is not
                 # always in-sync with GDB's internal target state. Hence, we explicitly wait until GDB's internal
                 # state agrees with the notification status.
                 self._is_target_running = False
                 self._cv_target_state.notify_all()
             elif 'running' in notify_msg:
+                dottmi.gdb_mi.GdbMiDebugCapture.record(f'[TARGET RUNNING] {msg}')
                 self._is_target_running = True
                 self._cv_target_state.notify_all()
             else:
                 log.warn(f'Unhandled notification: {notify_msg}')
-
-    def _internal_wait_halted(self, wait_secs: float = 1.0):
-        start_time = time.time()
-        while (time.time() - start_time) <= wait_secs:
-            try:
-                # Note: Ideally the documented (but not implemented) GDB MI command "-target-exec-status" would be used
-                # here to check if the target is halted or not. As an alternative, an info command is used which
-                # raises and exception if the target is running.
-                self.exec('-thread-info')
-                # command succeeded => target is halted
-                return
-            except:
-                time.sleep(0)  # yield current thread
-        raise DottException(f'Target not halted within {wait_secs} second(s) despite reported as "stopped" by GDB.')
 
     def is_running(self) -> bool:
         """
@@ -423,8 +410,7 @@ class Target(NotifySubscriber):
         Returns:
             Returns True if the target is running, false otherwise.
         """
-        with self._cv_target_state:
-            return self._is_target_running
+        return self._is_target_running
 
     def wait_halted(self, wait_secs: float | None = None) -> None:
         """
@@ -432,17 +418,14 @@ class Target(NotifySubscriber):
         the target is halted when it returns.
 
         Args:
-            wait_secs: Number of seconds to wait before a DottExeception is thrown.
+            wait_secs: Number of seconds to wait before a DottException is thrown.
         """
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
 
-        assert wait_secs > 1
-        start_time = time.time()
-
         with self._cv_target_state:
-            while self._is_target_running and ((start_time + wait_secs) > time.time()):
-                self._cv_target_state.wait(1)
+            if self._is_target_running:
+                self._cv_target_state.wait_for(lambda: not self._is_target_running, wait_secs)
             if self._is_target_running:
                 dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
@@ -458,12 +441,9 @@ class Target(NotifySubscriber):
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
 
-        assert wait_secs > 1
-        start_time = time.time()
-
         with self._cv_target_state:
-            while (not self._is_target_running) and ((start_time + wait_secs) > time.time()):
-                self._cv_target_state.wait(1)
+            if not self._is_target_running:
+                self._cv_target_state.wait_for(lambda: self._is_target_running, wait_secs)
             if not self._is_target_running:
                 dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.')
