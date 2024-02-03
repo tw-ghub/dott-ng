@@ -437,10 +437,14 @@ class Target(NotifySubscriber):
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
 
+        assert wait_secs > 1
+        start_time = time.time()
+
         with self._cv_target_state:
+            while self._is_target_running and ((start_time + wait_secs) < time.time()):
+                self._cv_target_state.wait(1)
             if self._is_target_running:
-                self._cv_target_state.wait(wait_secs)
-            if self._is_target_running:
+                dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
 
     def wait_running(self, wait_secs: float | None = None) -> None:
@@ -454,10 +458,14 @@ class Target(NotifySubscriber):
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
 
+        assert wait_secs > 1
+        start_time = time.time()
+
         with self._cv_target_state:
+            while (not self._is_target_running) and ((start_time + wait_secs) < time.time()):
+                self._cv_target_state.wait(1)
             if not self._is_target_running:
-                self._cv_target_state.wait(wait_secs)
-            if not self._is_target_running:
+                dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.')
 
     ###############################################################################################
