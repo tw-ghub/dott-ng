@@ -30,7 +30,7 @@ class GdbMiDebugCapture(InMemoryDebugCapture):
     """
     Captures GDB MI commands sent to GDB and responses received from GDB in an in-memory (RAM) buffer.
     """
-    enabled: bool = True if os.environ.get('DOTT_DEBUG_GDBMI') else False
+    enabled: bool = True #if os.environ.get('DOTT_DEBUG_GDBMI') else False
 
 
 # ----------------------------------------------------------------------------------------------------------------------
