@@ -441,7 +441,7 @@ class Target(NotifySubscriber):
         start_time = time.time()
 
         with self._cv_target_state:
-            while self._is_target_running and ((start_time + wait_secs) < time.time()):
+            while self._is_target_running and ((start_time + wait_secs) > time.time()):
                 self._cv_target_state.wait(1)
             if self._is_target_running:
                 dottmi.gdb_mi.GdbMiDebugCapture.dump()
@@ -453,7 +453,7 @@ class Target(NotifySubscriber):
         the target is running when it returns.
 
         Args:
-            wait_secs: Number of seconds to wait before a DottExeception is thrown.
+            wait_secs: Number of seconds to wait before a DottException is thrown.
         """
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
@@ -462,7 +462,7 @@ class Target(NotifySubscriber):
         start_time = time.time()
 
         with self._cv_target_state:
-            while (not self._is_target_running) and ((start_time + wait_secs) < time.time()):
+            while (not self._is_target_running) and ((start_time + wait_secs) > time.time()):
                 self._cv_target_state.wait(1)
             if not self._is_target_running:
                 dottmi.gdb_mi.GdbMiDebugCapture.dump()
