@@ -546,6 +546,7 @@ class InMemoryDebugCapture:
         """
         Dumps (prints) the recorded entries. If running in pytest this might require "-s" command line option.
         """
-        print(f'{os.linesep}{os.linesep}-------- Debug Capture Dump --------{os.linesep}')
-        for entry in cls._capture_queue:
-            print(entry)
+        if cls.enabled:
+            print(f'{os.linesep}{os.linesep}-------- Debug Capture Dump --------{os.linesep}')
+            for entry in cls._capture_queue:
+                print(entry)
