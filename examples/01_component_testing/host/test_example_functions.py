@@ -444,7 +444,6 @@ class TestExampleFunctions(object):
     # used by the target's Quicksort implementation. Checks if the result is now sorted in reverse order.
     def test_qs_intercept(self, target_load, target_reset):
         dt = dott().target
-        dc = DottConvert
 
         class MyInterceptPoint(InterceptPoint):
             def reached(self):

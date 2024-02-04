@@ -390,14 +390,11 @@ class Target(NotifySubscriber):
         notify_msg = msg['message']
         with self._cv_target_state:
             if 'stopped' in notify_msg:
-                dottmi.gdb_mi.GdbMiDebugCapture.record(f'[TARGET STOPPED] {msg}')
-                # Note: The call to _wait_until_halted is needed here since a 'stopped' notification from GDB is not
-                # always in-sync with GDB's internal target state. Hence, we explicitly wait until GDB's internal
-                # state agrees with the notification status.
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}')
                 self._is_target_running = False
                 self._cv_target_state.notify_all()
             elif 'running' in notify_msg:
-                dottmi.gdb_mi.GdbMiDebugCapture.record(f'[TARGET RUNNING] {msg}')
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}')
                 self._is_target_running = True
                 self._cv_target_state.notify_all()
             else:
@@ -427,7 +424,6 @@ class Target(NotifySubscriber):
             if self._is_target_running:
                 self._cv_target_state.wait_for(lambda: not self._is_target_running, wait_secs)
             if self._is_target_running:
-                dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
 
     def wait_running(self, wait_secs: float | None = None) -> None:
@@ -445,7 +441,6 @@ class Target(NotifySubscriber):
             if not self._is_target_running:
                 self._cv_target_state.wait_for(lambda: self._is_target_running, wait_secs)
             if not self._is_target_running:
-                dottmi.gdb_mi.GdbMiDebugCapture.dump()
                 raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.')
 
     ###############################################################################################

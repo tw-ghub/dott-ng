@@ -474,6 +474,7 @@ class BlockingDict(object):
             return self._items.pop(key)
 
 
+# -------------------------------------------------------------------------------------------------
 class Network(object):
 
     _next_gdb_srv_port: int = 2331
@@ -523,30 +524,47 @@ class Network(object):
         return start_port
 
 
+# -------------------------------------------------------------------------------------------------
 class InMemoryDebugCapture:
     """
     In-memory debug capture records provided entries in a memory (RAM) buffer.
     It does not immediately print the recorded entries and therefore reduces the impact on runtime timing. This might
     be important for low-level problem analysis. Capturing is done in a circular buffer of pre-defined size.
     """
-    _capture_queue: deque = deque(maxlen=40)
 
-    enabled: bool = False
+    def __init__(self, enabled: bool = False, num_records: int = 40):
+        self._enabled: bool = enabled
+        self._capture_queue: deque = deque(maxlen=num_records)
 
-    @classmethod
-    def record(cls, entry: Any) -> None:
+    @property
+    def enabled(self) -> bool:
+        """
+        Returns enable status.
+        """
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, enabled: bool) -> None:
+        """
+        Enable or disable debug capturing.
+        Args:
+            enabled: True to enable, False to disable.
+        """
+        self._enabled = enabled
+
+    def record(self, entry: Any) -> None:
         """
         Records the provided entry in the internal queue.
         :param entry: Entry to be added to the capture queue.
         """
-        cls._capture_queue.append(entry)
+        if self._enabled:
+            self._capture_queue.append(entry)
 
-    @classmethod
-    def dump(cls) -> None:
+    def dump(self) -> None:
         """
         Dumps (prints) the recorded entries. If running in pytest this might require "-s" command line option.
         """
-        if cls.enabled:
+        if self._enabled:
             print(f'{os.linesep}{os.linesep}-------- Debug Capture Dump --------{os.linesep}')
-            for entry in cls._capture_queue:
+            for entry in self._capture_queue:
                 print(entry)

@@ -26,13 +26,6 @@ from dottmi.dottexceptions import DottException
 from dottmi.utils import BlockingDict, log, InMemoryDebugCapture
 
 
-class GdbMiDebugCapture(InMemoryDebugCapture):
-    """
-    Captures GDB MI commands sent to GDB and responses received from GDB in an in-memory (RAM) buffer.
-    """
-    enabled: bool = True #if os.environ.get('DOTT_DEBUG_GDBMI') else False
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 class GdbMi(object):
     def __init__(self, mi_controller: GdbController):
@@ -55,9 +48,14 @@ class GdbMi(object):
                                                          'console': BlockingDict(),
                                                          'notify': BlockingDict()}
 
+        # In-memory debug capture facility for minimally invasive in-memory GDBMI debug capturing
+        enabled: bool = True if os.environ.get('DOTT_DEBUG_GDBMI') else False
+        self.debug_capture = InMemoryDebugCapture(enabled)
+
         # Create and start thread which handles the incoming response from GDB and puts
         # them into the correct response dictionary.
-        self._response_handler = GdbMiResponseHandler(self._mi_controller, self._response_dicts, self._trace_commands)
+        self._response_handler = GdbMiResponseHandler(self._mi_controller, self._response_dicts, self.debug_capture,
+                                                      self._trace_commands)
         self._response_handler.start()
 
     ###############################################################################################
@@ -143,8 +141,8 @@ class GdbMi(object):
         token = self._get_next_mi_token()
         if self._trace_commands:
             log.debug(f'{token}         gdb write: {cmd}')
-        if GdbMiDebugCapture.enabled:
-            GdbMiDebugCapture.record(f'[TO GDB] {token} {cmd}')
+        self.debug_capture.record(f'[TO GDB] {token} {cmd}')
+
         try:
             self._mi_controller.write("%d%s" % (token, cmd), read_response=False)
         except IOError:
@@ -216,13 +214,15 @@ class GdbMiContext(object):
 
 # ----------------------------------------------------------------------------------------------------------------------
 class GdbMiResponseHandler(threading.Thread):
-    def __init__(self, mi_controller: GdbController, dicts: Dict, trace_commands: bool = False) -> None:
+    def __init__(self, mi_controller: GdbController, dicts: Dict, debug_capture: InMemoryDebugCapture,
+                 trace_commands: bool = False) -> None:
         super().__init__(name='GdbResponseHandler')
         self._mi_controller: GdbController = mi_controller
         self._response_dicts: Dict = dicts
         self._running: bool = False
         self._notify_subscribers = {}
         self._trace_commands: bool = trace_commands
+        self._debug_capture: InMemoryDebugCapture = debug_capture
 
     def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str = None) -> None:
         if (notify_msg, notify_reason) not in self._notify_subscribers:
@@ -238,17 +238,15 @@ class GdbMiResponseHandler(threading.Thread):
 
                 if not threading.main_thread().is_alive():
                     self._running = False
-                    # Dump in-memory capture at program termination.
-                    if GdbMiDebugCapture.enabled:
-                        GdbMiDebugCapture.dump()
+                    # Dump in-memory capture at program termination (if enabled).
+                    self._debug_capture.dump()
                     continue
 
                 for msg in messages:
                     msg_type = str(msg['type']).lower()
                     if self._trace_commands:
                         log.debug('[MSG] %s' % msg)
-                    if GdbMiDebugCapture.enabled:
-                        GdbMiDebugCapture.record('  [FROM GDB] %s' % msg)
+                    self._debug_capture.record('  [FROM GDB] %s' % msg)
 
                     if msg_type == 'result':
                         msg_token = -1
