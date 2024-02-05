@@ -316,6 +316,11 @@ class Target(NotifySubscriber):
             self.exec('-target-download')
 
     def reset(self, flush_reg_cache: bool = True) -> None:
+        """
+        Resets the target using the reset method provided by the debug monitor.
+        Args:
+            flush_reg_cache: Flushes GDB's register cache (default: True).
+        """
         self.monitor.reset()
         if flush_reg_cache:
             self.reg_flush_cache()
@@ -323,14 +328,23 @@ class Target(NotifySubscriber):
     def cont(self) -> None:
         """
         Continues target execution.
+        If the target is already running, the method returns without sending a command to the target or debugger.
         """
-        if self.is_running():
-            return
+        with self._cv_target_state:
+            if self._is_target_running:
+                return
 
-        self.exec('-exec-continue')
-        self.wait_running()
+            self.exec('-exec-continue')
+            self.wait_running()
 
-    def ret(self, ret_val: Union[int, str] | None= None) -> None:
+    def ret(self, ret_val: Union[int, str] | None = None) -> None:
+        """
+        Returns from the function that is currently executed by the target. The remaining part of the function body
+        is not executed. If a return value is provided, it is returned to the caller of the function.
+
+        Args:
+            ret_val: Return with ret_val from the currently executed function. The function's stack frame is discarded.
+        """
         if ret_val is None:
             self.exec('-exec-return')
         else:
@@ -340,6 +354,7 @@ class Target(NotifySubscriber):
     def halt(self, halt_in_it_block: bool = False) -> None:
         """
         Halts target execution.
+        If the target is already halted, the method returns without sending a command to the target or debugger.
 
         Args:
             halt_in_it_block: A target halt may happen while the target is executing an IT block. In this case, calls
@@ -353,30 +368,43 @@ class Target(NotifySubscriber):
             instruction stepping strategy of backs up xPSR and zeros out the xPSR IT bits before performing a function
             call with eval(). After the function call, the xPSR has to be restored form the saved value.
         """
-        if not self.is_running():
-            return
+        with self._cv_target_state:
+            if not self._is_target_running:
+                return
 
-        self.exec('-exec-interrupt --all')
-        self.wait_halted()
+            self.exec('-exec-interrupt --all')
+            self.wait_halted()
 
         if not halt_in_it_block:
             # check if we have halted in an IT block; if yes, do instruction stepping until we have left the IT block
             while self.reg_xpsr_in_it_block(self.eval(f'${self.monitor.xpsr_name()}')):
                 self.step_inst()
 
-    def step(self):
+    def step(self) -> None:
+        """
+        Performs source line stepping - one step at a time.
+        """
         with self._cv_target_state:
-            self._is_target_running = True
-        self.exec('-exec-step')
-        while self.is_running():
-            pass
+            if self._is_target_running:
+                raise RuntimeError('Target must be halted to perform source line stepping.')
+
+            self.exec('-exec-step')
+            # GDB state changes to running and then back to stopped
+            self.wait_running()
+            self.wait_halted()
 
     def step_inst(self):
+        """
+        Performs instruction stepping - one instruction at a time.
+        """
         with self._cv_target_state:
-            self._is_target_running = True
-        self.exec('-exec-step-instruction')
-        while self.is_running():
-            pass
+            if self._is_target_running:
+                raise RuntimeError('Target must be halted to perform source line stepping.')
+
+            self.exec('-exec-step-instruction')
+            # GDB state changes to running and then back to stopped
+            self.wait_running()
+            self.wait_halted()
 
     ###############################################################################################
     # Status-related target commands
@@ -407,7 +435,8 @@ class Target(NotifySubscriber):
         Returns:
             Returns True if the target is running, false otherwise.
         """
-        return self._is_target_running
+        with self._cv_target_state:
+            return self._is_target_running
 
     def wait_halted(self, wait_secs: float | None = None) -> None:
         """
@@ -520,7 +549,7 @@ class Target(NotifySubscriber):
             xpsr: xPSR content. Obtain the value with Target::eval('$xpsr') for Segger or  Target::eval('$xPSR')
             for OpenOCD.
 
-        Returns: Returns True if is executing an IT block, false otherwise.
+        Returns: Returns True if target is executing an IT block, false otherwise.
         """
         if (xpsr & (0b11 << 25)) >> 25 > 0 or (xpsr & (0b111111 << 10)) >> 10 > 0:
             return True
