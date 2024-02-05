@@ -148,7 +148,7 @@ class Breakpoint(ABC):
 class HaltPoint(Breakpoint):
     def __init__(self, location: str, temporary: bool = False, target: Target = None) -> None:
         super().__init__(location, target)
-        self._bp_info: Dict = None
+        self._bp_info: Dict | None = None
         self._q: queue.Queue = queue.Queue()
 
         args = ''
@@ -340,7 +340,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
         timeout_override = False
 
         # If no timeout was given set a reasonable high override timeout
-        # to prevent from getting stuck if a breakpoint is reached.
+        # to prevent from getting stuck if a breakpoint is not reached.
         if timeout is None:
             timeout_override = True
             timeout = 20

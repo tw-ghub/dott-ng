@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2023 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -341,8 +341,8 @@ class GdbClient(object):
     #                       if none DOTT tries to start a Segger GDB server instance and connect to it
     def __init__(self, gdb_client_binary: str) -> None:
         self._gdb_client_binary: str = gdb_client_binary
-        self._mi_controller: GdbControllerDott = None
-        self._gdb_mi: GdbMi = None
+        self._mi_controller: GdbControllerDott | None = None
+        self._gdb_mi: GdbMi | None = None
 
         # set Python 2.7 (used for GDB commands) path such that gdb subprocess actually finds it
         my_env = os.environ.copy()

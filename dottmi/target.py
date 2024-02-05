@@ -78,12 +78,12 @@ class Target(NotifySubscriber):
 
         # start breakpoint handler
         self._bp_handler: BreakpointHandler = BreakpointHandler()
-        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self._bp_handler, 'stopped', 'breakpoint-hit')
+        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self._bp_handler, 'stopped', 'breakpoint-hit', high_prio=False)
         self._bp_handler.start()
 
         # register to get notified if the target state changes
-        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self, 'stopped', None)
-        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self, 'running', None)
+        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self, 'stopped', None, high_prio=True)
+        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self, 'running', None, high_prio=True)
 
         # delay after device startup / continue
         self._startup_delay: float = 0.0

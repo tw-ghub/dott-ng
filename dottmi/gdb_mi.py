@@ -18,7 +18,7 @@
 import os
 import queue
 import threading
-from typing import Dict
+from typing import Dict, Callable
 
 from pygdbmi.gdbcontroller import GdbController
 
@@ -220,14 +220,23 @@ class GdbMiResponseHandler(threading.Thread):
         self._mi_controller: GdbController = mi_controller
         self._response_dicts: Dict = dicts
         self._running: bool = False
-        self._notify_subscribers = {}
         self._trace_commands: bool = trace_commands
         self._debug_capture: InMemoryDebugCapture = debug_capture
 
-    def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str = None) -> None:
-        if (notify_msg, notify_reason) not in self._notify_subscribers:
-            self._notify_subscribers[(notify_msg, notify_reason)] = []
-        self._notify_subscribers[(notify_msg, notify_reason)].append(subscriber)
+        # Dictionaries which maintain a mapping of keys (notify_msg, notify_reason|None ) -> subscriber.
+        # High-prio subscribers are notified before normal prio subscribers.
+        self._notify_subscribers_high_prio = {}
+        self._notify_subscribers = {}
+
+    def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str | None = None,
+                         high_prio: bool = False) -> None:
+        subscriber_dict: Dict = self._notify_subscribers_high_prio if high_prio else self._notify_subscribers
+        key = (notify_msg, notify_reason)
+
+        if key not in subscriber_dict:
+            # subscribers for a key are maintained in a list
+            subscriber_dict[key] = []
+        subscriber_dict[key].append(subscriber)
 
     def run(self) -> None:
         self._running = True
@@ -288,18 +297,12 @@ class GdbMiResponseHandler(threading.Thread):
                                 notify_reason = 'breakpoint-hit'
                                 msg['payload']['reason'] = notify_reason
 
-                        already_notified = []
-                        if (notify_msg, notify_reason) in self._notify_subscribers:
-                            for subscriber in self._notify_subscribers[(notify_msg, notify_reason)]:
-                                subscriber.notify(msg)
-                                already_notified.append(subscriber)
-                        if (notify_msg, None) in self._notify_subscribers:
-                            for subscriber in self._notify_subscribers[(notify_msg, None)]:
-                                if subscriber not in already_notified:
-                                    subscriber.notify(msg)
+                        # first, notify high priority subscribers (typically the target to update target run state)
+                        num_notified = self._notify(notify_msg, notify_reason, msg, self._notify_subscribers_high_prio)
+                        num_notified += self._notify(notify_msg, notify_reason, msg, self._notify_subscribers)
 
                         # if there are no subscribers for this notification it is stored in a dict for later analysis
-                        if len(already_notified) == 0:
+                        if num_notified == 0:
                             self._response_dicts['notify'].put((notify_msg, notify_reason), msg)
 
                     elif msg_type == 'log':
@@ -318,24 +321,48 @@ class GdbMiResponseHandler(threading.Thread):
                 log.exception(ex)
                 raise ex
 
+    def _notify(self, notify_msg, notify_reason, msg_full, subscriber_dict: Dict) -> int:
+        already_notified = []
+
+        # Subscribers might have subscribed for notifications with only the message as key (and reason as wildcard, i.e.,
+        # None) or with message and reason as key.
+        keys = [(notify_msg, None), (notify_msg, notify_reason)]
+
+        for key in keys:  # note: iterates left to right
+            if key in subscriber_dict:
+                # iterate through the list of subscribers for key
+                for subscriber in subscriber_dict[key]:
+                    if subscriber not in already_notified:
+                        # same subscriber might be subscribed with a concrete reason or reason None; don't notify twice
+                        subscriber.notify(msg_full)
+                        already_notified.append(subscriber)
+
+        return len(already_notified)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
-class NotifySubscriber(object):
+class NotifySubscriber:
     def __init__(self):
         self._notifications: queue.Queue = queue.Queue()
 
     def notify(self, msg: Dict) -> None:
         self._notifications.put(msg)
-        # Note: Callback handlers are executed in own thread to ensure that main gdbmi thread is not blocked. This is
-        # important as callback handlers can issue their own GDB requests which might lead to deadlocks if callback
-        # handlers are called in gdbmi context.
-        threading.Thread(target=self._notify_callback).start()
+        self._notify_callback()
 
     def _notify_callback(self):
+        """
+        May be implemented by a subclass and gets called in GdbMiResponseHandler thread context when a new notification
+        for the subscriber is available. If the callback handler implementation of the subclass is running longer or
+        issues (blocking) GDB calls, it is responsible to do so in a new thread to not block the GdbMiResponseHandler.
+        Otherwise, a deadlock situation might occur.
+        """
         pass
 
     def wait_for_notification(self, block: bool = True, timeout: float = None) -> Dict:
         """
+        Returns a notification from the queue. Optionally blocks (with timeout) until a notification message is
+        available.
+
         Args:
             block: True to block while waiting for notification, False otherwise.
             timeout: If blocking, specify the timeout when the function returns without having received and event.

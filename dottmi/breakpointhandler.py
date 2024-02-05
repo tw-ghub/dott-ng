@@ -32,12 +32,15 @@ class BreakpointHandler(NotifySubscriber, threading.Thread):
         threading.Thread.__init__(self, name='BreakpointHandler')
         self._breakpoints: Dict = {}
         self._running: bool = False
+        self._bp_lock = threading.Lock()
 
     def add_bp(self, bp: Breakpoint) -> None:
-        self._breakpoints[bp.num] = bp
+        with self._bp_lock:
+            self._breakpoints[bp.num] = bp
 
     def remove_bp(self, bp: Breakpoint) -> None:
-        self._breakpoints.pop(bp.num)
+        with self._bp_lock:
+            self._breakpoints.pop(bp.num)
 
     def run(self) -> None:
         self._running = True
@@ -53,9 +56,10 @@ class BreakpointHandler(NotifySubscriber, threading.Thread):
                 payload = msg['payload']
                 if payload['reason'] == 'breakpoint-hit':
                     bp_num = int(payload['bkptno'])
-                    if bp_num in self._breakpoints:
-                        self._breakpoints[bp_num].reached_internal(payload)
-                    else:
-                        log.warn(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
+                    with self._bp_lock:
+                        if bp_num in self._breakpoints:
+                            self._breakpoints[bp_num].reached_internal(payload)
+                        else:
+                            log.warn(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
                 else:
                     log.error(f'stop notification received with wrong reason: {payload["reason"]}')

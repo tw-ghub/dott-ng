@@ -15,13 +15,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
 from typing import List
 
-from dottmi.target_mem import TypedPtr, TargetMemScoped
-from dottmi.utils import DottConvert, log
-from dottmi.dott import DottConf, dott
 from dottmi.breakpoint import HaltPoint, InterceptPoint, InterceptPointCmds
+from dottmi.dott import DottConf, dott
+from dottmi.target_mem import TypedPtr, TargetMemScoped
+from dottmi.utils import DottConvert, log, DOTT_LABEL
+
 
 class TestExampleFunctions(object):
 
@@ -425,7 +425,6 @@ class TestExampleFunctions(object):
     # output is correctly sorted.
     def test_qs(self, target_load, target_reset):
         dt = dott().target
-        dc = DottConvert
 
         with TargetMemScoped(dt, 32) as mem:
             inp: List[int] = [18, 4, 3, 5, -2, 34, 1, 3, 2, 3, 9]
@@ -442,6 +441,9 @@ class TestExampleFunctions(object):
     ##
     # Example test which, on the fly (by means of an InterceptPoint) changes the behavior of the comparison function
     # used by the target's Quicksort implementation. Checks if the result is now sorted in reverse order.
+    #
+    # This test uses HALT MODE and eval to call the quicksort function. Therefor and InterceptPoint has to be used
+    # to change the operation of the is_le function. Using a HaltPoint would abort the function called with eval()!
     def test_qs_intercept(self, target_load, target_reset):
         dt = dott().target
 
@@ -468,3 +470,34 @@ class TestExampleFunctions(object):
             log.debug(out)
             log.debug(f'InterceptPoint hits: {ip.get_hits()}')
             assert out == sorted(inp, reverse=True)
+
+    ##
+    # Example test which, on the fly (by means of a HaltPoint) changes the behavior of the comparison function
+    # used by the target's Quicksort implementation. Checks if the result is now sorted in reverse order.
+    #
+    # This test uses FREE RUNNING MODE and eval to call the quicksort function. Therefor HaltPoint can be used
+    # to change the operation of the is_le function.
+    def test_qs_free_running(self, target_load, target_reset):
+        dt = dott().target
+
+        class MyHaltPoint(HaltPoint):
+            def reached(self):
+                a: int = dt.eval('a')
+                b: int = dt.eval('b')
+                if a < b:
+                    dt.ret(0)
+                else:
+                    dt.ret(1)
+                dt.cont()
+
+        hp_is_le = MyHaltPoint('is_le')
+        hp_qs_done = HaltPoint(DOTT_LABEL("QS_MAIN_DONE"))
+
+        dt.cont()
+        hp_qs_done.wait_complete()
+
+        cnt = dt.eval('n')
+        p_arr = dt.eval('&arr[0]')
+        arr = dt.mem.read_int32(p_arr, cnt)
+        log.debug(f'HaltPoint hits: {hp_is_le.get_hits()}')
+        assert arr == [5, 4, 3, 3, 3, 2, 2, 1]
