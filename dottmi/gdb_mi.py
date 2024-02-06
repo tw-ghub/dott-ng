@@ -324,8 +324,8 @@ class GdbMiResponseHandler(threading.Thread):
     def _notify(self, notify_msg, notify_reason, msg_full, subscriber_dict: Dict) -> int:
         already_notified = []
 
-        # Subscribers might have subscribed for notifications with only the message as key (and reason as wildcard, i.e.,
-        # None) or with message and reason as key.
+        # Subscribers might have subscribed for notifications with only the message as key (and reason as
+        # wildcard, i.e., None) or with message and reason as key.
         keys = [(notify_msg, None), (notify_msg, notify_reason)]
 
         for key in keys:  # note: iterates left to right
@@ -347,7 +347,8 @@ class NotifySubscriber:
 
     def notify(self, msg: Dict) -> None:
         self._notifications.put(msg)
-        self._notify_callback()
+        # Run notification callback in own thread
+        threading.Thread(target=self._notify_callback).start()
 
     def _notify_callback(self):
         """
