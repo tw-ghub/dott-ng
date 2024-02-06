@@ -248,7 +248,8 @@ class GdbMiResponseHandler(threading.Thread):
                 if not threading.main_thread().is_alive():
                     self._running = False
                     # Dump in-memory capture at program termination (if enabled).
-                    self._debug_capture.dump()
+                    if os.environ.get('DOTT_DEBUG_GDBMI_DUMP_ON_EXIT'):
+                        self._debug_capture.dump()
                     continue
 
                 for msg in messages:
