@@ -21,6 +21,7 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 import logging
 import os
 import threading
+import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
@@ -418,17 +419,19 @@ class Target(NotifySubscriber):
         notify_msg = msg['message']
         with self._cv_target_state:
             if 'stopped' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}'
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg} {os.linesep}'
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = False
                 self._cv_target_state.notify_all()
             elif 'running' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}'
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg} {os.linesep}'
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = True
                 self._cv_target_state.notify_all()
             else:
                 log.warn(f'Unhandled notification: {notify_msg}')
+
+        time.sleep(0.01)
 
     def is_running(self) -> bool:
         """
