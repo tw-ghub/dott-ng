@@ -418,12 +418,12 @@ class Target(NotifySubscriber):
         notify_msg = msg['message']
         with self._cv_target_state:
             if 'stopped' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg} {os.linesep}'
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = False
                 self._cv_target_state.notify_all()
             elif 'running' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg} {os.linesep}'
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = True
                 self._cv_target_state.notify_all()
@@ -463,10 +463,8 @@ class Target(NotifySubscriber):
 
         with self._cv_target_state:
             if self._is_target_running:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED ENTER] {threading.current_thread().name}')
-                res = self._cv_target_state.wait_for(self.is_halted, wait_secs)
-                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED EXIT] {threading.current_thread().name}; '
-                                                             f'{res}')
+                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED] {threading.current_thread().name}')
+                self._cv_target_state.wait_for(self.is_halted, wait_secs)
             if self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.'
@@ -485,10 +483,8 @@ class Target(NotifySubscriber):
 
         with self._cv_target_state:
             if not self._is_target_running:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING ENTER] {threading.current_thread().name}')
-                res = self._cv_target_state.wait_for(self.is_running, wait_secs)
-                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING EXIT] {threading.current_thread().name}; '
-                                                             f'{res}')
+                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING] {threading.current_thread().name}')
+                self._cv_target_state.wait_for(self.is_running, wait_secs)
             if not self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.dump()
                 raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.'

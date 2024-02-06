@@ -18,7 +18,7 @@
 import os
 import queue
 import threading
-from typing import Dict, Callable
+from typing import Dict
 
 from pygdbmi.gdbcontroller import GdbController
 
