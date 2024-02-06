@@ -451,10 +451,12 @@ class Target(NotifySubscriber):
 
         with self._cv_target_state:
             if self._is_target_running:
+                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED] {threading.current_thread().name}')
                 self._cv_target_state.wait_for(lambda: not self._is_target_running, wait_secs)
             if self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.dump()
-                raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
+                raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.'
+                                    f'Thread: {threading.current_thread().name}')
 
     def wait_running(self, wait_secs: float | None = None) -> None:
         """
@@ -469,10 +471,12 @@ class Target(NotifySubscriber):
 
         with self._cv_target_state:
             if not self._is_target_running:
+                self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING] {threading.current_thread().name}')
                 self._cv_target_state.wait_for(lambda: self._is_target_running, wait_secs)
             if not self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.dump()
-                raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.')
+                raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.'
+                                    f'Thread: {threading.current_thread().name}')
 
     ###############################################################################################
     # Breakpoint-related target commands
