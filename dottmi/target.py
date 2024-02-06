@@ -418,11 +418,13 @@ class Target(NotifySubscriber):
         notify_msg = msg['message']
         with self._cv_target_state:
             if 'stopped' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}')
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}'
+                                                             f'Thread: {threading.current_thread().name}')
                 self._is_target_running = False
                 self._cv_target_state.notify_all()
             elif 'running' in notify_msg:
-                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}')
+                self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}'
+                                                             f'Thread: {threading.current_thread().name}')
                 self._is_target_running = True
                 self._cv_target_state.notify_all()
             else:
@@ -438,6 +440,16 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             return self._is_target_running
 
+    def is_halted(self) -> bool:
+        """
+        Use this function to check if the target is halted or not.
+
+        Returns:
+            Returns True if the target is halted, false otherwise.
+        """
+        with self._cv_target_state:
+            return not self._is_target_running
+
     def wait_halted(self, wait_secs: float | None = None) -> None:
         """
         Wait until target is halted. The wait_halted command is typically not needed in user code as halt ensures that
@@ -452,7 +464,7 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             if self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED ENTER] {threading.current_thread().name}')
-                res = self._cv_target_state.wait_for(lambda: not self._is_target_running, wait_secs)
+                res = self._cv_target_state.wait_for(self.is_halted, wait_secs)
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED EXIT] {threading.current_thread().name}; '
                                                              f'{res}')
             if self._is_target_running:
@@ -474,7 +486,7 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             if not self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING ENTER] {threading.current_thread().name}')
-                res = self._cv_target_state.wait_for(lambda: self._is_target_running, wait_secs)
+                res = self._cv_target_state.wait_for(self.is_running, wait_secs)
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING EXIT] {threading.current_thread().name}; '
                                                              f'{res}')
             if not self._is_target_running:
