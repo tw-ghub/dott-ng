@@ -453,6 +453,7 @@ class Target(NotifySubscriber):
             if self._is_target_running:
                 self._cv_target_state.wait_for(lambda: not self._is_target_running, wait_secs)
             if self._is_target_running:
+                self._gdb_client.gdb_mi.debug_capture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.')
 
     def wait_running(self, wait_secs: float | None = None) -> None:
@@ -470,6 +471,7 @@ class Target(NotifySubscriber):
             if not self._is_target_running:
                 self._cv_target_state.wait_for(lambda: self._is_target_running, wait_secs)
             if not self._is_target_running:
+                self._gdb_client.gdb_mi.debug_capture.dump()
                 raise DottException(f'Target did not change to "running" state within {wait_secs} seconds.')
 
     ###############################################################################################
