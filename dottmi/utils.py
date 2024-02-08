@@ -532,7 +532,7 @@ class InMemoryDebugCapture:
     be important for low-level problem analysis. Capturing is done in a circular buffer of pre-defined size.
     """
 
-    def __init__(self, enabled: bool = False, num_records: int = 40):
+    def __init__(self, enabled: bool = False, num_records: int = 60):
         self._enabled: bool = enabled
         self._capture_queue: deque = deque(maxlen=num_records)
 

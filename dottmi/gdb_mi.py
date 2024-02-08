@@ -18,6 +18,7 @@
 import os
 import queue
 import threading
+import time
 from typing import Dict
 
 from pygdbmi.gdbcontroller import GdbController
@@ -243,7 +244,8 @@ class GdbMiResponseHandler(threading.Thread):
 
         while self._running:
             try:
-                messages = self._mi_controller.get_gdb_response(timeout_sec=0.005, raise_error_on_timeout=False)
+                time.sleep(.0001)  # release control
+                messages = self._mi_controller.get_gdb_response(timeout_sec=0.003, raise_error_on_timeout=False)
 
                 if not threading.main_thread().is_alive():
                     self._running = False
