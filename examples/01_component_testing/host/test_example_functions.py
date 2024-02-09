@@ -479,7 +479,6 @@ class TestExampleFunctions(object):
     #
     # This test uses FREE RUNNING MODE and eval to call the quicksort function. Therefor HaltPoint can be used
     # to change the operation of the is_le function.
-    @pytest.mark.skip
     def test_qs_free_running(self, target_load, target_reset):
         # note: skipped as label is currently only available on STM32 but not S32K binary.
         dt = dott().target
