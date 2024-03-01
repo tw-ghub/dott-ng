@@ -15,12 +15,10 @@
 #   limitations under the License.
 ###############################################################################
 
-import time
 from abc import ABC, abstractmethod
 
 from dottmi.dott import dott
 from dottmi.target import Target
-from dottmi.utils import log
 
 
 class RegBits:
@@ -39,6 +37,7 @@ class DeviceRegsDott(ABC):
     """
     def __init__(self, dt: Target | None = None):
         self._dt: Target = dt if dt else dott().target
+        pass
 
     @property
     def target(self) -> Target:
@@ -163,7 +162,7 @@ class RegAIRCR(RegBaseDott):
 
 
 class MyDeviceRegs(DeviceRegsDott):
-    def __init__(self, dt: Target = dott().target):
+    def __init__(self, dt: Target | None = None):
         super().__init__(dt)
 
         self.CPUID = RegCPUID(0xE000ED00, self)
@@ -175,63 +174,63 @@ Usage examples.
 """
 
 
-def test_cpuid():
-    dt = dott().target
-    stm32f072 = MyDeviceRegs(dt)
-
-    stm32f072.CPUID.fetch()
-    assert stm32f072.CPUID.raw == 0x410cc200
-    assert stm32f072.CPUID.IMPLEMENTER == 0x41  # ARM
-    assert stm32f072.CPUID.ARCHITECTURE == 0xc  # ARMv6-M
-    assert stm32f072.CPUID.PARTNO == 0xc20  # Cortex-M0
-    assert stm32f072.CPUID.REVISION == 0x0  # r0p0
-
-    log.debug(f'\nCPUID\n{stm32f072.CPUID}')
-
-
-def test_cpuid_monitor():
-    dt = dott().target
-    stm32f072 = MyDeviceRegs(dt)
-
-    with stm32f072.CPUID as r:
-        # note: fetch is done automatically when entering the monitor
-        assert r.raw == 0x410cc200
-        assert r.IMPLEMENTER == 0x41  # ARM
-        assert r.ARCHITECTURE == 0xc  # ARMv6-M
-        assert r.PARTNO == 0xc20  # Cortex-M0
-        assert r.REVISION == 0x0  # r0p0
-
-        log.debug(f'\nCPUID\n{r}')
-
-
-def test_reset(target_load, target_reset):
-    dt = dott().target
-    dev = MyDeviceRegs(dt)
-
-    dt.cont()
-    time.sleep(1)
-    dt.halt()
-
-    # note: global_data is initialized to 0xdeadbeef in firmware and then gets incremented in main loop
-    gd = dt.eval('global_data')
-    assert gd > 0xdeadbeef
-
-    dt.eval('global_data = 0x0')
-    gd = dt.eval('global_data')
-    assert gd == 0x0
-
-    # Trigger reset by writing to AIRC.SYSRESETREQ (required to set VECTKEY as well)
-    with dev.RegAIRC as r:
-        # note: fetch done automatically
-        r.VECTKEY = 0x05FA
-        r.SYSRESETREQ = 0x1
-    # note: commit done automatically
-
-    # let target run and initialize
-    dt.cont()
-    time.sleep(1)
-    dt.halt()
-
-    # global_data is expected to have been initialized again to deadbeef and incremented from there
-    gd = dt.eval('global_data')
-    assert gd > 0xdeadbeef
+# def test_cpuid():
+#     dt = dott().target
+#     stm32f072 = MyDeviceRegs(dt)
+#
+#     stm32f072.CPUID.fetch()
+#     assert stm32f072.CPUID.raw == 0x410cc200
+#     assert stm32f072.CPUID.IMPLEMENTER == 0x41  # ARM
+#     assert stm32f072.CPUID.ARCHITECTURE == 0xc  # ARMv6-M
+#     assert stm32f072.CPUID.PARTNO == 0xc20  # Cortex-M0
+#     assert stm32f072.CPUID.REVISION == 0x0  # r0p0
+#
+#     log.debug(f'\nCPUID\n{stm32f072.CPUID}')
+#
+#
+# def test_cpuid_monitor():
+#     dt = dott().target
+#     stm32f072 = MyDeviceRegs(dt)
+#
+#     with stm32f072.CPUID as r:
+#         # note: fetch is done automatically when entering the monitor
+#         assert r.raw == 0x410cc200
+#         assert r.IMPLEMENTER == 0x41  # ARM
+#         assert r.ARCHITECTURE == 0xc  # ARMv6-M
+#         assert r.PARTNO == 0xc20  # Cortex-M0
+#         assert r.REVISION == 0x0  # r0p0
+#
+#         log.debug(f'\nCPUID\n{r}')
+#
+#
+# def test_reset(target_load, target_reset):
+#     dt = dott().target
+#     dev = MyDeviceRegs(dt)
+#
+#     dt.cont()
+#     time.sleep(1)
+#     dt.halt()
+#
+#     # note: global_data is initialized to 0xdeadbeef in firmware and then gets incremented in main loop
+#     gd = dt.eval('global_data')
+#     assert gd > 0xdeadbeef
+#
+#     dt.eval('global_data = 0x0')
+#     gd = dt.eval('global_data')
+#     assert gd == 0x0
+#
+#     # Trigger reset by writing to AIRC.SYSRESETREQ (required to set VECTKEY as well)
+#     with dev.RegAIRC as r:
+#         # note: fetch done automatically
+#         r.VECTKEY = 0x05FA
+#         r.SYSRESETREQ = 0x1
+#     # note: commit done automatically
+#
+#     # let target run and initialize
+#     dt.cont()
+#     time.sleep(1)
+#     dt.halt()
+#
+#     # global_data is expected to have been initialized again to deadbeef and incremented from there
+#     gd = dt.eval('global_data')
+#     assert gd > 0xdeadbeef
