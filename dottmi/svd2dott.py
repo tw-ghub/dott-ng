@@ -14,6 +14,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
+
+import argparse
+import os
 import textwrap as tw
 from os.path import basename
 from typing import List, Tuple, TextIO
@@ -28,14 +31,17 @@ class SVD2Dott:
     This class implements a converter from Arm's CMSIS SVD (system view description) file
     format to a Python representation that then be used directly with the DOTT framework.
     """
-    def __init__(self, svd_file: str, out_file: str, device_name: str | None = None, newline: str = '\n') -> None:
+    def __init__(self, svd_file: str, out_file: str, device_name: str | None = None,
+                 newline: str = '\n', reg_prefix: str | None = None) -> None:
         self._svd_xml = lxml.etree.parse(svd_file)
         self._out_file: str = out_file
         self._device_regs: List[Tuple[str, int]] = []
         self._device_name: str | None = device_name
         self._newline = newline
+        self._reg_prefix: str = reg_prefix if reg_prefix else ''
 
-    def _get_node_text(self, xml, name: str) -> str:
+    @staticmethod
+    def _get_node_text(xml, name: str) -> str:
         nodes = xml.xpath(name)
         if len(nodes) != 1:
             raise ValueError(f'Exactly 1 node expected for name {name}. Found {len(nodes)} nodes.')
@@ -72,18 +78,21 @@ class SVD2Dott:
             name: str = self._get_node_text(register, 'name')
             access: str = self._get_node_text(register, 'access')
             addr_offset: int = du.cast_str(self._get_node_text(register, 'addressOffset'))
-            descr: str = self._get_node_text(register, "description")
+            descr: str = self._get_node_text(register, 'description')
+            reset_value: str = self._get_node_text(register, 'resetValue')
 
             self._device_regs.append((name, peripheral_base_addr + addr_offset))
 
             decr_formatted: str = tw.indent(tw.fill(descr, width=80), ' '*4)
-            description = tw.indent(f"{self._newline}Description:{self._newline}{decr_formatted}", ' ' * 4) \
+            description = tw.indent(f"{os.linesep}Description:{os.linesep}{decr_formatted}", ' ' * 4) \
                 if descr else ''
 
             f.write(tw.dedent(f'''
-                class Reg{name}(RegBaseDott):
+
+                class {self._reg_prefix}{name}(RegBaseDott):
                     """
-                    Access: [{access}] %s
+                    Access: [{access}]
+                    Reset value: {reset_value} %s
                     """
                     def __init__(self, reg_addr: int, dr: DeviceRegsDott) -> None:
                         super().__init__(reg_addr, dr)''') %
@@ -91,7 +100,7 @@ class SVD2Dott:
 
             self._emit_regbits(f, register)
 
-            f.write(self._newline)
+            f.write(os.linesep)
 
     def _emit_peripherals(self, f: TextIO) -> None:
         for peripheral in self._svd_xml.xpath('/device/peripherals/peripheral'):
@@ -142,12 +151,35 @@ def main():
     """
     Main.
     # TODO: add support for multiple input files.
-    # TODO: add argument parsing.
+    # TODO: add support for license header.
     """
-    svd2dott = SVD2Dott('../regaccess/xml/myregs.xml',
-                        '../regaccess/mregs.py',
-                        'MyDevice',
-                        newline='\n')
+    parser = argparse.ArgumentParser(prog='svd2dott',
+                                     description='Converts CMSIS SVD files to DOTT-compatible register access classes')
+
+    parser.add_argument('-i', '--input', dest='input', required=True,
+                        help='SVD input file')
+    parser.add_argument('-o', '--output', dest='output', required=True,
+                        help='DOTT register Python file')
+    parser.add_argument('-d', '--device', dest='device', required=False, default=None,
+                        help='Device name. Overrides device name in SVD file.')
+    parser.add_argument('-r', '--reg-prefix', dest='reg_prefix', required=False, default=None,
+                        help='Register class prefix (default is none).')
+    parser.add_argument('-n', '--newline', dest='newline', required=False, type=str,
+                        choices=['unix', 'dos'], default='unix',
+                        help='Newline type (unix, dos) used in output file.')
+
+    args = parser.parse_args()
+
+    # set newline depending on user input
+    newline: str = '\n'
+    if args.newline == 'dos':
+        newline = '\r\n'
+
+    svd2dott = SVD2Dott(args.input,
+                        args.output,
+                        args.device,
+                        newline,
+                        args.reg_prefix)
     svd2dott.generate()
 
 
