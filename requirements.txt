@@ -7,6 +7,7 @@ dott-ng-runtime==1.1.1
 pygdbmi==0.11.0.0
 pylink-square
 pytest
+lxml
 
 # more recommendations than actual requirements below this line
 pyOCD

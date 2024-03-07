@@ -63,7 +63,7 @@ class SVD2Dott:
         '''))
 
         for reg, addr in self._device_regs:
-            f.write(tw.indent(f'self.{reg} = Reg{reg}({hex(addr)}, self){self._newline}', ' '*8))
+            f.write(tw.indent(f'self.{reg} = {self._reg_prefix}{reg}({hex(addr)}, self){self._newline}', ' '*8))
 
     def _emit_regbits(self, f: TextIO, xml_register) -> None:
         for regbits in xml_register.xpath("./fields/field"):
@@ -131,7 +131,6 @@ class SVD2Dott:
 
     def _merge_peripherals(self) -> None:
         primary_peripherals = self._svd_xml.xpath('/device/peripherals')[0]
-        print(primary_peripherals)
 
         for add_file in self._additional_svd_files:
             print(f'Merging {add_file}')
@@ -166,9 +165,7 @@ class SVD2Dott:
                 import typing
 
                 from dottmi.reg_access import RegBaseDott, DeviceRegsDott, RegBits
-
-                if typing.TYPE_CHECKING:
-                    from dottmi.dott import Target
+                from dottmi.target import Target
 
                 # Intentionally disable selected pylint warnings.
                 # pylint: disable=line-too-long
@@ -186,7 +183,7 @@ class SVD2Dott:
 
 def main():
     """
-    Main.
+    Main. Performs argument parsing and triggers the SDV conversion.
     """
     parser = argparse.ArgumentParser(prog='svd2dott',
                                      description='Converts CMSIS SVD files to DOTT-compatible register access classes')
