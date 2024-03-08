@@ -66,7 +66,16 @@ class SVD2Dott:
             preg = f'{self._reg_prefix}{reg}'
             f.write(tw.indent(f'self.{preg} = {preg}({hex(addr)}, self){self._newline}', ' '*8))
 
-    def _emit_regbits(self, f: TextIO, xml_register) -> None:
+    def _do_overlap(self, lsb: int, msb: int, lsb_last: int, msb_last: int) -> bool:
+        last_set = set(range(lsb_last, msb_last +1 ))
+        current = range(lsb, msb + 1)
+        interect_len: int  = len(last_set.intersection(current))
+        return False if interect_len == 0 else True
+
+    def _emit_regbits(self, f: TextIO, xml_register, register_name: str) -> None:
+        lsb_last: int | None = None
+        msb_last: int | None = None
+
         for regbits in xml_register.xpath("./fields/field"):
             name: str = self._get_node_text(regbits, "name")
 
@@ -84,6 +93,16 @@ class SVD2Dott:
                 self.{name}: int = 0x0
                 self._bits_{name}: RegBits = RegBits(start={lsb}, end={msb})"""
             ), ' ' * 8))
+
+            lsb_i = du.cast_str(lsb)
+            msb_i = du.cast_str(msb)
+            if lsb_last is not None and msb_last is not None:
+                if self._do_overlap(lsb_i, msb_i, lsb_last, msb_last):
+                    print(f'WARNING: Overlap detected for {register_name}.{name} and {register_name}.{name_last}. '
+                          f'Please check (and correct) input data!')
+            lsb_last = lsb_i
+            msb_last = msb_i
+            name_last: str = name
 
     def _emit_registers(self, f: TextIO, xml_peripheral, peripheral_base_addr: int) -> None:
         for register in xml_peripheral.xpath('./registers/register'):
@@ -120,7 +139,7 @@ class SVD2Dott:
                         super().__init__(reg_addr, dr)''') %
                     description)
 
-            self._emit_regbits(f, register)
+            self._emit_regbits(f, register, name)
 
             f.write(os.linesep)
 
