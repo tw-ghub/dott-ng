@@ -63,7 +63,8 @@ class SVD2Dott:
         '''))
 
         for reg, addr in self._device_regs:
-            f.write(tw.indent(f'self.{reg} = {self._reg_prefix}{reg}({hex(addr)}, self){self._newline}', ' '*8))
+            preg = f'{self._reg_prefix}{reg}'
+            f.write(tw.indent(f'self.{preg} = {preg}({hex(addr)}, self){self._newline}', ' '*8))
 
     def _emit_regbits(self, f: TextIO, xml_register) -> None:
         for regbits in xml_register.xpath("./fields/field"):
@@ -92,8 +93,15 @@ class SVD2Dott:
             except ValueError:
                 access = ''
             addr_offset: int = du.cast_str(self._get_node_text(register, 'addressOffset'))
-            descr: str = self._get_node_text(register, 'description')
-            reset_value: str = self._get_node_text(register, 'resetValue')
+
+            try:
+                descr: str = self._get_node_text(register, 'description')
+            except:
+                descr: str = ''
+            try:
+                reset_value: str = self._get_node_text(register, 'resetValue')
+            except:
+                reset_value: str = ''
 
             self._device_regs.append((name, peripheral_base_addr + addr_offset))
 
@@ -119,7 +127,10 @@ class SVD2Dott:
     def _emit_peripherals(self, f: TextIO) -> None:
         for peripheral in self._svd_xml.xpath('/device/peripherals/peripheral'):
             name: str = self._get_node_text(peripheral, 'name')
-            peripheral_base_addr: int = du.cast_str(self._get_node_text(peripheral, 'baseAddress'))
+            try:
+                peripheral_base_addr: int = du.cast_str(self._get_node_text(peripheral, 'baseAddress'))
+            except:
+                continue
             f.write(tw.dedent(f"""
 
                 ###############################################################################
