@@ -467,9 +467,9 @@ shared_install_requires = [
                        "pytest-cov",
                        "pytest-instafail",
                        "pytest-repeat",
-                       "pyserial",
                        "pigpio",
-                       "matplotlib"
+                       "matplotlib",
+                       "lxml"
                    ]
 
 def setup_dott_runtime():
@@ -558,6 +558,11 @@ def setup_dott():
         classifiers=shared_classifiers,
         install_requires=shared_install_requires,
         python_requires='>=3.10',
+        entry_points={
+            'console_scripts': [
+                'svd2dott = dottmi.svd2dott:main',
+            ],
+        }
     )
 
 

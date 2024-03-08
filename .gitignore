@@ -11,13 +11,13 @@
 **/*.egg-info
 **/dott_data
 **/dist
-**/jlink_log.txt
 *.pyc
 *.bz2
 *.gz
+*.7z
 *.zip
+*.deb
 *.jar
 *.exe
-*.deb
-*.dat
 **/venv_*
+examples/jlink_log.txt
