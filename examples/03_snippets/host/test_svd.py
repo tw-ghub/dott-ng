@@ -55,7 +55,13 @@ class TestSvd:
         in_name: str = in_file if in_file else '03_snippets/host/data/STM32F072x.svd'
         if os.path.exists(out_name):
             os.remove(out_name)
-        os.system(f'python ../dottmi/svd2dott.py -i {in_name} -o {out_name} {args}')
+
+        if os.environ.get('JENKINS_HOME'):
+            log.debug('Running on Jenkins.')
+            os.system(f'svd2dott -i {in_name} -o {out_name} {args}')
+        else:
+            log.debug('NOT running on Jenkins.')
+            os.system(f'python ../dottmi/svd2dott.py -i {in_name} -o {out_name} {args}')
 
     def test_stm32f072(self, target_load, target_reset):
         """
@@ -195,29 +201,3 @@ class TestSvd:
         # global_data is expected to have been initialized again to deadbeef and incremented from there
         gd = dt.eval('global_data')
         assert gd > 0xdeadbeef
-
-    def test_svd2dott_tool(self):
-        """
-        In contrast to the previous tests, this one assumes that svd2dott is installed as 'bin tool' and can be
-        called directly (which is the case for deployment versions of DOTT). It is only executed on Jenkins.
-        """
-        if os.environ.get('JENKINS_HOME'):
-            log.debug('Running on Jenkins')
-        else:
-            assert pytest.skip('Skipping test as execution is not on Jenkins.')
-
-        os.system('svd2dott -i 03_snippets/host/data/STM32F072x.svd 03_snippets/host/data/Cortex-M0.svd '
-                  '-o 03_snippets/host/regs_svd2dott_tool.py')
-
-        from .regs_svd2dott_tool import STM32F072xRegisters
-        dt = dott().target
-        stm32_regs = STM32F072xRegisters(dt)
-
-        stm32_regs.CFGR.fetch()
-        log.debug('0x%x' % stm32_regs.CFGR.raw)
-        assert stm32_regs.CFGR.raw == 0x2022bb7f
-        stm32_regs.PRER.fetch()
-        log.debug('0x%x' % stm32_regs.PRER.raw)
-        assert stm32_regs.PRER.raw == 0x007F00FF
-
-        os.remove('03_snippets/host/regs_svd2dott_tool.py')
