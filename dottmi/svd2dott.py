@@ -181,10 +181,13 @@ class SVD2Dott:
         if not self._device_name:
             self._device_name = self._get_node_text(self._svd_xml, "/device/name")
 
-        license_raw: str = self._svd_xml.find('licenseText').text
-        license_raw = os.linesep.join([line.strip() for line in license_raw.splitlines()])
-        license_raw = os.linesep.join([line.replace('\\n\\n', os.linesep) for line in license_raw.splitlines()])
-        license_raw = os.linesep.join([line.replace('\\n\\n', '') for line in license_raw.splitlines()])
+        try:
+            license_raw: str = self._svd_xml.find('licenseText').text
+            license_raw = os.linesep.join([line.strip() for line in license_raw.splitlines()])
+            license_raw = os.linesep.join([line.replace('\\n\\n', os.linesep) for line in license_raw.splitlines()])
+            license_raw = os.linesep.join([line.replace('\\n\\n', '') for line in license_raw.splitlines()])
+        except:
+            license_raw: str = ''
 
         with open(self._out_file, 'w', encoding='ascii', newline=self._newline) as f:
             license_formatted: str = f'"""\r{inspect.cleandoc(license_raw) if license_raw else ""}\r"""{os.linesep}'

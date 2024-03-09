@@ -16,6 +16,7 @@
 ###############################################################################
 import glob
 import os
+import subprocess
 import time
 
 import pytest
@@ -33,6 +34,7 @@ def setup_module(request):
     TestSvd.create_reg_file('regs_device_stm32f072x.py', args='-d Nucleo')
     TestSvd.create_reg_file('regs_merged_stm32f072x.py',
                             in_file='03_snippets/host/data/STM32F072x.svd 03_snippets/host/data/Cortex-M0.svd')
+    TestSvd.create_reg_file('regs_cortexm0.py', in_file=f'03_snippets/host/data/Cortex-M0.svd')
 
 
 def teardown_module(request):
@@ -44,7 +46,7 @@ def teardown_module(request):
     Returns:
 
     """
-    for f in glob.glob('03_snippets/host/regs_*stm32f072x.py'):
+    for f in glob.glob('03_snippets/host/regs_*.py'):
         os.remove(f)
 
 
@@ -58,7 +60,10 @@ class TestSvd:
 
         if os.environ.get('JENKINS_HOME'):
             log.debug('Running on Jenkins.')
+            pptmp = os.environ.get('PYTHONPATH')
+            os.environ['PYTHONPATH'] = ''
             os.system(f'svd2dott -i {in_name} -o {out_name} {args}')
+            os.environ['PYTHONPATH'] = pptmp
         else:
             log.debug('NOT running on Jenkins.')
             os.system(f'python ../dottmi/svd2dott.py -i {in_name} -o {out_name} {args}')
