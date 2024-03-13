@@ -1,6 +1,6 @@
 /*
  *   Copyright (c) 2019-2021 ams AG
- *   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+ *   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -36,6 +36,10 @@ typedef struct {
     uint8_t  paddC; // non-word size padding for testing purposes
     uint32_t sum;
 } my_add_t;
+
+// function pointers
+typedef uint32_t(*func_ptr_t)(void );
+static volatile func_ptr_t func_a = NULL;
 
 
 /**
@@ -184,6 +188,47 @@ int32_t __attribute__((used)) example_CustomOperation(int32_t (*func_ptr)(int32_
 
 
 /**
+Performs addition of two integers hard coded in the function. If function pointer a is not NULL,
+it is called and the returned value is used as input to the addition.
+*/
+uint32_t __attribute__((used)) example_FunctionPointers()
+{
+	uint32_t a = 10;
+	uint32_t b = 20;
+
+	if (func_a != NULL) {
+		a = func_a();
+	}
+
+	return a + b;
+}
+
+/**
+Sets function pointer a to fixed function example_GetA.
+*/
+void __attribute__((used)) reg_func_ptr_a()
+{
+	func_a = &example_GetA;
+}
+
+/**
+Sets function pointer a to fixed function example_GetA.
+*/
+void __attribute__((used)) reg_func_ptr_null()
+{
+	func_a = NULL;
+}
+
+/**
+Sets function pointer a to given argument.
+*/
+void __attribute__((used)) reg_func_ptr_param(func_ptr_t ptr)
+{
+	func_a = ptr;
+}
+
+
+/**
  * Function taking a string argument and returning the string's length.
  */
 int32_t __attribute__((used)) example_StringLen(char *msg)
@@ -203,7 +248,3 @@ static int32_t __attribute__((used)) example_SumElements(uint16_t *elem, uint16_
 	}
 	return ret_val;
 }
-
-
-
-
