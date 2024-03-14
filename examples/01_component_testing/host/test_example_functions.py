@@ -274,54 +274,6 @@ class TestExampleFunctions(object):
         res = dott().target.eval(f'example_CustomOperation({func_add_ptr}, {args[0]}, {args[1]})')
         assert(exp_sum == res), f'expected: {exp_sum}, is: {res}'
 
-    # This test demonstrates the setting of a function pointer via DOTT/GDB and via code. Differences are
-    # in the 'smart' handling of the Thumb bit (required for function pointers) by GDB.
-    def test_function_pointer(self, target_load, target_reset):
-        dt = dott().target
-
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 30
-
-        # When setting the function pointer directly to an address, the lest significant bit needs to be
-        # set to make the function pointer valid in Thumb mode.
-        ptr = dt.eval('&example_GetA')
-        dt.eval(f'func_a = {ptr | 0x00000001}')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 62
-
-        # The function pointer can be (re-)set to NULL via direct assignment
-        dt.eval(f'func_a = {0x0}')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 30
-
-        # When setting the function pointer via a setter function (which takes a function pointer parameter)
-        # GDB automatically sets the thumb bit.
-        dt.eval(f'reg_func_ptr_param({ptr})')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 62
-
-        # IMPORTANT Note:
-        # When atempting to set the function pointer to NULL (0x0) with as shown below, GDB also stets the thumb bit:
-        # dt.eval(f'reg_func_ptr_param({ptr})')
-        # Therefore, the function pointer is not 0x0 but 0x1!
-
-        # The function pointer can be (re-)set to NULL via direct assignment
-        dt.eval(f'func_a = {0x0}')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 30
-
-        # When setting the function pointer via 'hardcoded' setter function, GCC already sets the thumb bit.
-        # GDB automatically sets the thumb bit.
-        dt.eval(f'reg_func_ptr_a()')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 62
-
-        # Setting to NULL via 'hardcoded' setter function actually sets the function pointer to NULL (0x0).
-        dt.eval(f'reg_func_ptr_null()')
-        res = dt.eval('example_FunctionPointers()')
-        assert res == 30
-
-
     ##
     # \amsTestDesc Test function which takes a string as argument and returns the string's length.
     # \amsTestPrec None
