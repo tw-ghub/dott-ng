@@ -212,7 +212,7 @@ void __attribute__((used)) reg_func_ptr_a()
 }
 
 /**
-Sets function pointer a to fixed function example_GetA.
+Sets function pointer to NULL.
 */
 void __attribute__((used)) reg_func_ptr_null()
 {
@@ -220,7 +220,7 @@ void __attribute__((used)) reg_func_ptr_null()
 }
 
 /**
-Sets function pointer a to given argument.
+Sets function pointer a to given pointer argument.
 */
 void __attribute__((used)) reg_func_ptr_param(func_ptr_t ptr)
 {
