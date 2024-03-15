@@ -17,7 +17,8 @@
 
 from dottmi.dott import dott
 
-class TestTargetCreation:
+
+class TestFunctionPointers:
 
     # This test demonstrates the setting of a function pointer via DOTT/GDB and via code. Differences are
     # in the 'smart' handling of the Thumb bit (required for function pointers) by GDB.
