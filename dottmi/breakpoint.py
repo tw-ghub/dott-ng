@@ -180,7 +180,7 @@ class HaltPoint(Breakpoint):
         try:
             self._q.get(block=True, timeout=timeout)
         except queue.Empty:
-            raise TimeoutError(f'Timeout while waiting to reach halt point at {self._location}.') from None
+            raise TimeoutError(f'Timeout ({timeout}s) while waiting to reach halt point at {self._location}.') from None
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1

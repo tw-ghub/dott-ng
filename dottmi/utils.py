@@ -492,7 +492,7 @@ class Network(object):
         """
         import socket
 
-        port = cls._next_gdb_srv_port
+        port = cls._next_gdb_srv_port + 3
         sequentially_free_ports = 0
         start_port = 0
 

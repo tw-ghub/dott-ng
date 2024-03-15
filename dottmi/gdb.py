@@ -132,9 +132,9 @@ class GdbServerJLink(GdbServer):
                                              creationflags=cflags)
 
         p = psutil.Process(self._srv_process.pid)
+        startup_done = False
         try:
             # query the started process until it has opened a listening socket on the expected port
-            startup_done = False
             end_time = time.time() + 8
             while startup_done is False and time.time() < end_time:
                 for c in p.connections():
