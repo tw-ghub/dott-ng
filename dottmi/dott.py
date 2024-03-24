@@ -18,6 +18,8 @@
 
 from __future__ import annotations  # available from Python 3.7 onwards, default from Python 3.11 onwards
 
+import threading
+import time
 import typing
 
 from dottmi.dott_conf import DottConf, DottConfExt
@@ -31,7 +33,7 @@ from typing import List
 
 from dottmi.dottexceptions import DottException
 from dottmi.monitor import MonitorJLink, Monitor, MonitorOpenOCD, MonitorPEMicro
-from dottmi.utils import log_setup, singleton
+from dottmi.utils import log_setup, singleton, ExceptionPropagator, log
 
 
 class DottHooks(object):
@@ -103,6 +105,9 @@ class Dott(object):
             DottHooks.exec_pre_connect_hook()
 
             self._default_target = self.create_target(DottConf())
+
+        # Initialize exception propagator to enable forwarding of exceptions from sob threads to main thread.
+        ExceptionPropagator.setup()
 
     def create_target(self, dconf: [DottConf | DottConfExt], set_as_default_if_none: bool = True) -> Target:
         """

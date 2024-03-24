@@ -34,7 +34,7 @@ from dottmi.dott import dott
 from dottmi.dottexceptions import DottException
 from dottmi.gdb_mi import GdbMiContext
 from dottmi.gdb_shared import BpMsg, BpSharedConf
-from dottmi.utils import log, cast_str
+from dottmi.utils import log, cast_str, ExceptionPropagator
 
 
 # Abstract base class defining common methods for all breakpoints.
@@ -184,8 +184,15 @@ class HaltPoint(Breakpoint):
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
-        self._dott_target.wait_halted()
-        self.reached()
+        try:
+            self._dott_target.wait_halted()
+        except DottException as exc:
+            log.warn('Target did not change to state halted!')
+            ExceptionPropagator.propagate_exception(exc)
+        try:
+            self.reached()
+        except Exception as exc:
+            ExceptionPropagator.propagate_exception(exc)
         # queue is used to notify one potentially waiting thread
         self._q.put(None, block=False)
 
@@ -384,9 +391,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
                 self._dott_target.gdb_client.gdb_mi.context.acquire_context(self, GdbMiContext.BP_INTERCEPT)
                 self.reached()
             except Exception as ex:
-                log.exception(ex)
-                log.warn('Breakpoint execution failed. Letting target continue anyway. '
-                         'Remaining breakpoint commands in "reached" are discarded')
+                ExceptionPropagator.propagate_exception(ex)
             finally:
                 self._dott_target.gdb_client.gdb_mi.context.release_context(self)
 
