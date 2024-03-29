@@ -23,6 +23,7 @@ import multiprocessing
 import queue
 import socket
 import threading
+import time
 import warnings
 from abc import *
 from typing import List, Union, Dict, TYPE_CHECKING
@@ -397,6 +398,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
 
             msg = BpMsg(BpMsg.MSG_TYPE_FINISH_CONT)
             msg.send_to_socket(self._sock)
+            time.sleep(0.1)  # release control. preference would be handshake once target is running again.
 
             # notify threads which are potentially waiting for completion of this breakpoint
             self._signal_complete()
