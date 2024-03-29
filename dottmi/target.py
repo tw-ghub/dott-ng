@@ -21,6 +21,7 @@ from __future__ import annotations  # available from Python 3.7 onwards, default
 import logging
 import os
 import threading
+import time
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
@@ -67,6 +68,9 @@ class Target(NotifySubscriber):
         # allowing callers to wait until target is stopped or running
         self._cv_target_state: threading.Condition = threading.Condition()
         self._is_target_running: bool = True
+        # counters to keep track how many (threads) are lined to for a stage change notifications
+        self._wait_running_cnt: int = 0
+        self._wait_halted_cnt: int = 0
 
         # Default number of seconds to wait for a target state change (i.e., halt -> running and vice versa) before
         # raising a timeout exception.
@@ -416,21 +420,29 @@ class Target(NotifySubscriber):
         # by the notifier upon the availability of the new message. Hence, no actual waiting here.
         msg = self.wait_for_notification()
         notify_msg = msg['message']
-        with self._cv_target_state:
-            if 'stopped' in notify_msg:
+        if 'stopped' in notify_msg:
+            with self._cv_target_state:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = False
-                self._cv_target_state.notify_all()
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED DONE] {threading.current_thread().name}')
-            elif 'running' in notify_msg:
+            while self._wait_halted_cnt > 0:
+                with self._cv_target_state:
+                    self._cv_target_state.notify_all()
+                time.sleep(.0001)  # pass control to other threads which decrement self._wait_halted_cnt
+
+        elif 'running' in notify_msg:
+            with self._cv_target_state:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = True
-                self._cv_target_state.notify_all()
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING DONE] {threading.current_thread().name}')
-            else:
-                log.warn(f'Unhandled notification: {notify_msg}')
+            while self._wait_running_cnt > 0:
+                with self._cv_target_state:
+                    self._cv_target_state.notify_all()
+                time.sleep(.0001)   # pass control to other threads which decrement self._wait_running_cnt
+        else:
+            log.warn(f'Unhandled notification: {notify_msg}')
 
     def is_running(self) -> bool:
         """
@@ -466,7 +478,9 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             if self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED] {threading.current_thread().name}')
+                self._wait_halted_cnt += 1
                 self._cv_target_state.wait_for(self.is_halted, wait_secs)
+                self._wait_halted_cnt -= 1
             else:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_HALTED FALLTHROUGH] {threading.current_thread().name}')
             if self._is_target_running:
@@ -489,7 +503,9 @@ class Target(NotifySubscriber):
         with self._cv_target_state:
             if not self._is_target_running:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING] {threading.current_thread().name}')
+                self._wait_running_cnt += 1
                 self._cv_target_state.wait_for(self.is_running, wait_secs)
+                self._wait_running_cnt -= 1
             else:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[WAIT_RUNNING FALLTHROUGH] {threading.current_thread().name}')
             if not self._is_target_running:
