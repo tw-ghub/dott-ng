@@ -395,7 +395,7 @@ class DottConfExt(object):
             self._conf['gdb_server_port'] = '2331'
         elif self._conf['gdb_server_port'].strip() == '':
             self._conf['gdb_server_port'] = '2331'
-        log.info(f'GDB server port:       {self._conf["gdb_server_port"]}')
+        log.info(f'GDB server port (std): {self._conf["gdb_server_port"]}')
 
         if 'gdb_server_connect_timeout' not in self._conf or self._conf['gdb_server_connect_timeout'] is None:
             self._conf['gdb_server_connect_timeout'] = '5'

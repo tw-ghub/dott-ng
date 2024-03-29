@@ -15,9 +15,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
+import _thread
 import logging
 import os
+import signal
 import struct
 import threading
 from collections import deque
@@ -492,7 +493,7 @@ class Network(object):
         """
         import socket
 
-        port = cls._next_gdb_srv_port
+        port = cls._next_gdb_srv_port + 3
         sequentially_free_ports = 0
         start_port = 0
 
@@ -568,3 +569,37 @@ class InMemoryDebugCapture:
             print(f'{os.linesep}{os.linesep}-------- Debug Capture Dump --------{os.linesep}')
             for entry in self._capture_queue:
                 print(entry)
+
+
+# -------------------------------------------------------------------------------------------------
+class ExceptionPropagator:
+    """
+    This class provides functionality to propagate exceptions from threads to the main thread.
+    Propagation is implemented by means of signal.SIGABRT which is raised by the sub thread.
+    """
+    _exception: Exception | None = None
+    # _exception_lock: threading.Lock = threading.Lock()
+
+    @classmethod
+    def _sig_handler(cls, signum, frame):
+        if cls._exception:
+            raise cls._exception
+
+    @classmethod
+    def setup(cls):
+        """
+        Sets up the signal handler. Should be called from main thread.
+        """
+        if threading.current_thread().name != 'MainThread':
+            log.warning('Signal handler setup should be called from main thread!')
+        signal.signal(signal.SIGABRT, cls._sig_handler)
+
+    @classmethod
+    def propagate_exception(cls, exc: Exception):
+        """
+        Propagates teh given exception ecx to the main thread. Te setup method is
+        expected to be called before by the main thread.
+        """
+        cls._exception = exc
+        signal.raise_signal(signal.SIGABRT)
+        # assert cls._exception == None

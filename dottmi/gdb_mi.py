@@ -351,7 +351,7 @@ class NotifySubscriber:
     def notify(self, msg: Dict) -> None:
         self._notifications.put(msg)
         # Run notification callback in own thread
-        threading.Thread(target=self._notify_callback).start()
+        self._notify_callback()
 
     def _notify_callback(self):
         """

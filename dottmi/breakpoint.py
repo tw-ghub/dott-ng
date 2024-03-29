@@ -23,6 +23,7 @@ import multiprocessing
 import queue
 import socket
 import threading
+import time
 import warnings
 from abc import *
 from typing import List, Union, Dict, TYPE_CHECKING
@@ -34,7 +35,7 @@ from dottmi.dott import dott
 from dottmi.dottexceptions import DottException
 from dottmi.gdb_mi import GdbMiContext
 from dottmi.gdb_shared import BpMsg, BpSharedConf
-from dottmi.utils import log, cast_str
+from dottmi.utils import log, cast_str, ExceptionPropagator
 
 
 # Abstract base class defining common methods for all breakpoints.
@@ -180,12 +181,19 @@ class HaltPoint(Breakpoint):
         try:
             self._q.get(block=True, timeout=timeout)
         except queue.Empty:
-            raise TimeoutError(f'Timeout while waiting to reach halt point at {self._location}.') from None
+            raise TimeoutError(f'Timeout ({timeout}s) while waiting to reach halt point at {self._location}.') from None
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
-        self._dott_target.wait_halted()
-        self.reached()
+        try:
+            self._dott_target.wait_halted()
+        except DottException as exc:
+            log.warn('Target did not change to state halted!')
+            ExceptionPropagator.propagate_exception(exc)
+        try:
+            self.reached()
+        except Exception as exc:
+            ExceptionPropagator.propagate_exception(exc)
         # queue is used to notify one potentially waiting thread
         self._q.put(None, block=False)
 
@@ -384,14 +392,13 @@ class InterceptPoint(threading.Thread, Breakpoint):
                 self._dott_target.gdb_client.gdb_mi.context.acquire_context(self, GdbMiContext.BP_INTERCEPT)
                 self.reached()
             except Exception as ex:
-                log.exception(ex)
-                log.warn('Breakpoint execution failed. Letting target continue anyway. '
-                         'Remaining breakpoint commands in "reached" are discarded')
+                ExceptionPropagator.propagate_exception(ex)
             finally:
                 self._dott_target.gdb_client.gdb_mi.context.release_context(self)
 
             msg = BpMsg(BpMsg.MSG_TYPE_FINISH_CONT)
             msg.send_to_socket(self._sock)
+            time.sleep(0.1)  # release control. preference would be handshake once target is running again.
 
             # notify threads which are potentially waiting for completion of this breakpoint
             self._signal_complete()
