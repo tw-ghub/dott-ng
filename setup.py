@@ -53,7 +53,6 @@ class CustomInstallCommand(bdist_wheel):
 
         mirror_url: str = os.environ.get('DEP_MIRROR_URL')
 
-#        self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v12.2.1-1.2/xpack-arm-none-eabi-gcc-12.2.1-1.2-win32-x64.zip'
         self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v13.2.1-1.1/xpack-arm-none-eabi-gcc-13.2.1-1.1-win32-x64.zip'
         self._gdb_url_orig = self._gdb_url
         if mirror_url is not None:
@@ -212,7 +211,6 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
 
         mirror_url: str = os.environ.get('DEP_MIRROR_URL')
 
-#        self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v12.2.1-1.2/xpack-arm-none-eabi-gcc-12.2.1-1.2-linux-x64.tar.gz'
         self._gdb_url = 'https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v13.2.1-1.1/xpack-arm-none-eabi-gcc-13.2.1-1.1-linux-x64.tar.gz'
         self._gdb_url_orig = self._gdb_url
         if mirror_url is not None:
@@ -437,9 +435,9 @@ shared_author = "Thomas Winkler"
 shared_url = "https://github.com/tw-ghub/dott-ng"
 
 shared_install_requires = [
-                       "dott-ng-runtime==1.12.0",
+                       "dott-ng-runtime==1.13.0",
                        "pygdbmi==0.11.0.0",
-                       "pylink-square==1.0.0",
+                       "pylink-square==1.2.0",
                        "pytest",
                        "pytest-cov",
                        "pytest-instafail",
