@@ -123,19 +123,9 @@ class DottConfExt(object):
                         break
                     line = f.readline()
             os.environ['DOTTGDBPATH'] = str(Path(f'{dott_runtime_path}/apps/gdb/bin'))
-            os.environ['PYTHONPATH27'] = str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13'))
             self.set('DOTTRUNTIME', f'{dott_runtime_path} (dott-runtime package)')
             self.set('DOTT_RUNTIME_VER', runtime_version)
             self.set('DOTTGDBPATH', str(Path(f'{dott_runtime_path}/apps/gdb/bin')))
-            self.set('PYTHONPATH27', str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13')))
-
-            # Linux: check if libpython2.7 and libnurses5 are installed. Windows: They are included in the DOTT runtime.
-            if platform.system() == 'Linux':
-                res = subprocess.run([str(Path(f'{dott_runtime_path}/apps/gdb/bin/arm-none-eabi-gdb-py')), '--version'],
-                                     stdout=subprocess.PIPE)
-                if res.returncode != 0:
-                    raise DottException('Unable to start gdb client. This might be caused by missing dependencies.\n'
-                                        'Make sure that libpython2.7 and libncurses5 are installed.')
 
         # If DOTTRUNTIME is set in the environment it overrides the integrated runtime in dott_data
         if os.environ.get('DOTTRUNTIME') is not None and os.environ.get('DOTTRUNTIME').strip() != '':

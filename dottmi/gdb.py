@@ -344,19 +344,8 @@ class GdbClient(object):
         self._mi_controller: GdbControllerDott | None = None
         self._gdb_mi: GdbMi | None = None
 
-        # set Python 2.7 (used for GDB commands) path such that gdb subprocess actually finds it
-        my_env = os.environ.copy()
-        python27_path = os.environ.get('PYTHONPATH27')
-        if python27_path is None:
-            raise Exception('PYTHONPATH27 not set. Can not load gdb command support. Aborting.')
-        if platform.system() == 'Windows':
-            os.environ['PATH'] = f'{python27_path};{my_env["PATH"]}'
-            os.environ['PYTHONPATH'] = '%s;%s\\lib;%s\\lib\\site-packages;%s\\DLLs' % ((python27_path,) * 4)
-        else:
-            os.environ['PYTHONPATH'] = ''
-
         my_dir = os.path.dirname(os.path.realpath(__file__))
-        os.environ['PYTHONPATH'] += os.pathsep + str(Path(my_dir + '/..'))
+        os.environ['PYTHONPATH'] = os.pathsep + str(Path(my_dir + '/..'))
 
     # Create DB client instance.
     def create(self) -> None:
