@@ -147,7 +147,7 @@ class Breakpoint(ABC):
 
 # -------------------------------------------------------------------------------------------------
 class HaltPoint(Breakpoint):
-    def __init__(self, location: str, temporary: bool = False, target: Target = None) -> None:
+    def __init__(self, location: [str, int], temporary: bool = False, target: Target = None) -> None:
         super().__init__(location, target)
         self._bp_info: Dict | None = None
         self._q: queue.Queue = queue.Queue()
@@ -219,7 +219,7 @@ class HaltPoint(Breakpoint):
 
 # -------------------------------------------------------------------------------------------------
 class Barrier(HaltPoint):
-    def __init__(self, location: str, temporary: bool = False, parties: int = 1, target: Target = None) -> None:
+    def __init__(self, location: [str, int], temporary: bool = False, parties: int = 1, target: Target = None) -> None:
         if parties != 1:
             raise DottException('DOTT barrier implementation only supports 1 party (thread) '
                                 'to wait for a location to be reached.')
@@ -235,7 +235,7 @@ class Barrier(HaltPoint):
 
 # -------------------------------------------------------------------------------------------------
 class InterceptPointCmds(Breakpoint):
-    def __init__(self, location: str, commands: List, target: Target = None) -> None:
+    def __init__(self, location: [str, int], commands: List, target: Target = None) -> None:
         super().__init__(location, target)
         # serialize function name and commands using JSON and supply them to custom GDB command
         com = json.dumps([location] + commands)
@@ -285,7 +285,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
             log.warn('Not all Intercept points were deleted!')
 
     # ---------------------------------------------------------------------------------------------
-    def __init__(self, location: str, target: Target = None) -> None:
+    def __init__(self, location: [str, int], target: Target = None) -> None:
         Breakpoint.__init__(self, location, target)
         threading.Thread.__init__(self, name='InterceptPoint')
         self._running: bool = False
