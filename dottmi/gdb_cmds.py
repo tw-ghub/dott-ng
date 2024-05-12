@@ -82,10 +82,19 @@ class DottCmdInterceptPoint(gdb.Command):
         # No-Stop Breakpoint implementation executed in GDB context
         class InterceptPoint(gdb.Breakpoint):
             def __init__(self, func, sock):
-                self._outfile = open('gdb_cmds_log_1.txt', 'w+')
+                self._outfile = open('gdb_cmds_log_2.txt', 'w+')
                 self._outfile.write('\nenter init\n')
+                self._outfile.write(func)
+                self._outfile.write('\n')
                 self._outfile.flush()
-                super(InterceptPoint, self).__init__(func)
+                try:
+                    super(InterceptPoint, self).__init__(func)
+                except Exception as ex:
+                    self._outfile.write('\nsuper ex\n')
+                    self._outfile.write(str(ex))
+                    self._outfile.write('\n')
+                    self._outfile.flush()
+
                 self._outfile.write('\nsuper done\n')
                 self._outfile.flush()
                 self._func = func
