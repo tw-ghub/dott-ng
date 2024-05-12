@@ -75,6 +75,7 @@ class DottCmdInterceptPoint(gdb.Command):
         super(DottCmdInterceptPoint, self).__init__("dott-bp-nostop-tcp", gdb.COMMAND_USER)
 
     def invoke(self, arg, from_tty):
+        outfile = open('gdb_cmds_log.txt', 'w+')
 
         # No-Stop Breakpoint implementation executed in GDB context
         class InterceptPoint(gdb.Breakpoint):
@@ -144,11 +145,19 @@ class DottCmdInterceptPoint(gdb.Command):
                 except Exception as ex:
                     print('Execution of NoStopBreakpoint in GDB context failed.')
                     print(str(ex))
+                    outfile.write('ex: 148+\n')
+                    outfile.write(str(ex))
+                    outfile.write('\n')
 
                 # let target continue (stop_inferior = False) or halt the target
                 return stop_inferior
 
         try:
+            outfile.write('type: ')
+            outfile.write(str(type(arg)))
+            outfile.write('\narg: ')
+            outfile.write(arg)
+            outfile.write('\n')
             # connect to server socket (in MI process)
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -161,6 +170,11 @@ class DottCmdInterceptPoint(gdb.Command):
 
         except Exception as ex:
             print(str(ex))
+            outfile.write('ex: 173+\n')
+            outfile.write(str(ex))
+            outfile.write('\n')
+
+        outfile.close()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -206,4 +220,3 @@ DottCmdInterceptPointCmds()
 DottCmdInterceptPoint()
 DottCmdInterceptPointDelete()
 DottCmdIsRunning()
-
