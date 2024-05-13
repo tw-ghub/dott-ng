@@ -75,33 +75,14 @@ class DottCmdInterceptPoint(gdb.Command):
         super(DottCmdInterceptPoint, self).__init__("dott-bp-nostop-tcp", gdb.COMMAND_USER)
 
     def invoke(self, arg, from_tty):
-        outfile = open('gdb_cmds_log_1.txt', 'w+')
-        outfile.write('invoke\n')
-        outfile.flush()
 
         # No-Stop Breakpoint implementation executed in GDB context
         class InterceptPoint(gdb.Breakpoint):
             def __init__(self, func, sock):
-                self._outfile = open('gdb_cmds_log_2.txt', 'w+')
-                self._outfile.write('\nenter init\n')
-                self._outfile.write(func)
-                self._outfile.write('\n')
-                self._outfile.flush()
-                try:
-                    super(InterceptPoint, self).__init__(func)
-                except Exception as ex:
-                    self._outfile.write('\nsuper ex\n')
-                    self._outfile.write(str(ex))
-                    self._outfile.write('\n')
-                    self._outfile.flush()
-
-                self._outfile.write('\nsuper done\n')
-                self._outfile.flush()
+                super(InterceptPoint, self).__init__(func)
                 self._func = func
                 self._sock = sock
                 self._sock.setblocking(True)
-                self._outfile.write('\ninit done\n')
-                self._outfile.flush()
 
             def get_func(self):
                 return self._func
@@ -111,20 +92,14 @@ class DottCmdInterceptPoint(gdb.Command):
                 self._sock = None
 
             def stop(self):
-                self._outfile.write('\nenter stop\n')
-                self._outfile.flush()
                 stop_inferior = False
 
                 if self._sock is None:
-                    self._outfile.write('\nsock none\n')
-                    self._outfile.flush()
                     return stop_inferior
 
                 try:
                     msg = BpMsg(BpMsg.MSG_TYPE_HIT) # bp hit message
                     msg.send_to_socket(self._sock)
-                    self._outfile.write('\nhit sent\n')
-                    self._outfile.flush()
 
                     while True:
                         # blocks until new message is available
@@ -137,18 +112,9 @@ class DottCmdInterceptPoint(gdb.Command):
 
                         # 'execute' message
                         elif msg.get_type() == BpMsg.MSG_TYPE_EXEC:
-                            self._outfile.write('\nexec\n')
-                            self._outfile.flush()
                             try:
                                 cmd = msg.get_payload().decode('ascii')
-                                self._outfile.write('\ncmd\n')
-                                self._outfile.write(cmd)
-                                self._outfile.write('\n')
-                                self._outfile.flush()
-
                                 gdb.execute(cmd)
-                                self._outfile.write('\nexec done\n')
-                                self._outfile.flush()
                                 msg = BpMsg(BpMsg.MSG_TYPE_RESP)  # response message
                                 msg.send_to_socket(self._sock)
                             except Exception as ex:
@@ -178,22 +144,11 @@ class DottCmdInterceptPoint(gdb.Command):
                 except Exception as ex:
                     print('Execution of NoStopBreakpoint in GDB context failed.')
                     print(str(ex))
-                    outfile.write('ex: 148+\n')
-                    outfile.write(str(ex))
-                    outfile.write('\n')
-                    outfile.flush()
 
                 # let target continue (stop_inferior = False) or halt the target
                 return stop_inferior
 
         try:
-            outfile.write('type: ')
-            outfile.write(str(type(arg)))
-            outfile.write('\narg: ')
-            outfile.write(arg)
-            outfile.write('\n')
-            outfile.flush()
-
             # connect to server socket (in MI process)
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -206,11 +161,6 @@ class DottCmdInterceptPoint(gdb.Command):
 
         except Exception as ex:
             print(str(ex))
-            outfile.write('ex: 173+\n')
-            outfile.write(str(ex))
-            outfile.write('\n')
-
-        outfile.close()
 
 
 # ----------------------------------------------------------------------------------------------------------------------
