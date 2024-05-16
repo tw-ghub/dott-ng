@@ -201,8 +201,21 @@ class DottCmdIsRunning(gdb.Command):
             print('DOTT_RESP, %d, dott-is-running, YES, %s, DOTT_RESP_END' % (int(arg), str(ex)))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+class MIDottCmdCliExec(gdb.MICommand):
+    """
+    MI command to execute the given command and return the result string.
+    """
+    def __init__(self, name):
+        super().__init__(name)
+
+    def invoke(self, argv):
+        res = gdb.execute(' '.join(argv), to_string=True)
+        return {'res': res}
+
 # Initialize command(s)
 DottCmdInterceptPointCmds()
 DottCmdInterceptPoint()
 DottCmdInterceptPointDelete()
 DottCmdIsRunning()
+MIDottCmdCliExec('-dott-cli-exec')

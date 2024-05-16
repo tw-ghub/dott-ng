@@ -300,6 +300,20 @@ class Target(NotifySubscriber):
     def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
 
+    def cli_exec_ext(self, cmd: str, timeout: float | None = None) -> str:
+        """
+        Execute the given GDB CLI command and return the result as string (which is the difference to the default
+        cli_exec). This may replace the current default implementation in the future.
+        Args:
+            cmd: GBM CLI command to execute.
+            timeout: Timeout as multiple (or fraction) of seconds.
+
+        Returns: GDB CLI command result string.
+        """
+        res: Dict = self._gdb_client.gdb_mi.write_blocking(f'-dott-cli-exec "{cmd}"', timeout=timeout)
+        return res['payload']['res']
+
+
     ###############################################################################################
     # Execution-related target commands
 
