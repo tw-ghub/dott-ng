@@ -15,7 +15,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-
+import os
 import time
 from typing import List, Tuple
 
@@ -77,6 +77,9 @@ class TestCounters(object):
     # \amsTestReqs RS_0110, RS_0280
     @pytest.mark.live_access
     def test_SystickSampleLive(self, target_load, target_reset, live_access):
+        if os.environ.get('JENKINS_HOME') and os.name == 'nt':
+            pytest.mark.skip('Skipping plotting on headless Windows test system.')
+
         def sample_mem_addr(mem_addr: int, duration: float, live: TargetDirect, plot_live: bool = False) -> Tuple[List[float], List[int]]:
             duration_list: List[float] = []
             samples_list: List[int] = []
@@ -125,7 +128,7 @@ class TestCounters(object):
     ##
     # \amsTestDesc This test demonstrates who a timer interrupt can be generated 'manually' via DOTT which, in some
     #              situations, might be a useful approach to test correct interrupt handling in firmware.
-    #              In addition an InterceptPoint is set in the interrupt handler and the timer counter is altered
+    #              In addition, an InterceptPoint is set in the interrupt handler and the timer counter is altered
     #              in the InterceptPoint. Before generating the next interrupt, the test waits until the InterceptPoint
     #              is completed.
     # \amsTestPrec None
