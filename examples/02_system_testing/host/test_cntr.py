@@ -77,10 +77,8 @@ class TestCounters(object):
     # \amsTestReqs RS_0110, RS_0280
     @pytest.mark.live_access
     def test_SystickSampleLive(self, target_load, target_reset, live_access):
-        log.debug(os.environ.get('JENKINS_HOME'))
-        log.debug(os.name)
         if os.environ.get('JENKINS_HOME') and os.name == 'nt':
-            pytest.mark.skip('Skipping plotting on headless Windows test system.')
+            pytest.skip('Skipping plotting on headless Windows test system.')
 
         def sample_mem_addr(mem_addr: int, duration: float, live: TargetDirect, plot_live: bool = False) -> Tuple[List[float], List[int]]:
             duration_list: List[float] = []
