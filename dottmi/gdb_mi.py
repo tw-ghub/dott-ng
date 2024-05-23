@@ -59,12 +59,6 @@ class GdbMi(object):
                                                       self._trace_commands)
         self._response_handler.start()
 
-    def __del__(self):
-        """
-        Ensure that GDB MI controller is closed upon teardown (to prevent resource warnings).
-        """
-        self._mi_controller.exit()
-
     ###############################################################################################
     # Properties
     @property

@@ -110,6 +110,16 @@ class Target(NotifySubscriber):
                                 'it again you may need to create and set a new GDB server instance (because DOTT '
                                 'auto-launches JLINK GDB server in singlerun mode.')
 
+        # source script with custom GDB commands (custom Python commands executed in GDB context)
+        my_dir = Path(__file__).absolute().parent
+        gdb_script_file = my_dir.joinpath('./gdb_cmds.py')
+
+        # note: GDB expects paths to be POSIX-formatted.
+        gdb_script_file = str(PurePosixPath(gdb_script_file))
+        self.cli_exec_legacy(f'source {gdb_script_file}')  # Note: Sourcing needs to be done with default MI CLI exec
+                                                           #       as only after sourcing the extended CLI exec command
+                                                           #       is available.
+
         try:
             # Hook called before connection to GDB server is established.
             DottHooks.exec_gdb_pre_connect_hook(self)
@@ -120,13 +130,6 @@ class Target(NotifySubscriber):
         except Exception as ex:
             raise ex
 
-        # source script with custom GDB commands (custom Python commands executed in GDB context)
-        my_dir = Path(__file__).absolute().parent
-        gdb_script_file = my_dir.joinpath('./gdb_cmds.py')
-
-        # note: GDB expects paths to be POSIX-formatted.
-        gdb_script_file = str(PurePosixPath(gdb_script_file))
-        self.cli_exec(f'source {gdb_script_file}')
 
         self._gdb_client_is_connected = True
 
@@ -179,6 +182,11 @@ class Target(NotifySubscriber):
         After calling disconnect, the target instance can no longer be used (i.e., there is not reconnect).
         """
         if self._gdb_client is not None:
+            # The pygdbmi 3rd party module has an issue closing the GDB client process which may result in a resource
+            # warning. This is not harmful upon teardown - therefore the warning is suppressed to not confuse users.
+            import warnings
+            warnings.simplefilter("ignore", ResourceWarning)
+
             self.exec_noblock('-gdb-exit')
             self._gdb_client = None
             self._gdb_client_is_connected = False
@@ -297,10 +305,11 @@ class Target(NotifySubscriber):
     def exec_noblock(self, cmd: str) -> int:
         return self._gdb_client.gdb_mi.write_non_blocking(cmd)
 
-    def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
+    def cli_exec_legacy(self, cmd: str, timeout: float | None = None) -> Dict:
         """
         Execute the given GDB CLI command and return MI result as dictionary. Note: This dict only contains
         command status information but NOT the (textual) result of the executed CLI command.
+        Using cli_exec is preferred over cli_exec_legacy which remains available for special (internal) cases.
 
         Args:
             cmd: GBM CLI command to execute.
@@ -310,7 +319,7 @@ class Target(NotifySubscriber):
         """
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
 
-    def cli_exec_ext(self, cmd: str, timeout: float | None = None) -> str:
+    def cli_exec(self, cmd: str, timeout: float | None = None) -> str:
         """
         Execute the given GDB CLI command and return the result as string.
 
