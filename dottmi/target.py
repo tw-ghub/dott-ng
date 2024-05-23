@@ -297,11 +297,10 @@ class Target(NotifySubscriber):
     def exec_noblock(self, cmd: str) -> int:
         return self._gdb_client.gdb_mi.write_non_blocking(cmd)
 
-    def cli_exec_legacy(self, cmd: str, timeout: float | None = None) -> Dict:
+    def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
         """
         Execute the given GDB CLI command and return MI result as dictionary. Note: This dict only contains
         command status information but NOT the (textual) result of the executed CLI command.
-        This is the legacy version of cli_exec and is considered deprecated.
 
         Args:
             cmd: GBM CLI command to execute.
@@ -311,9 +310,10 @@ class Target(NotifySubscriber):
         """
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
 
-    def cli_exec(self, cmd: str, timeout: float | None = None) -> str:
+    def cli_exec_ext(self, cmd: str, timeout: float | None = None) -> str:
         """
         Execute the given GDB CLI command and return the result as string.
+
         Args:
             cmd: GBM CLI command to execute.
             timeout: Timeout as multiple (or fraction) of seconds.
