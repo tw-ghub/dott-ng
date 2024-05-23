@@ -62,7 +62,7 @@ class CustomInstallCommand(bdist_wheel):
         self._gdb_version_info = 'gcc-arm-none-eabi-gcc-13.2.1-1.1-win32-x64'
         self._gdb_folder = os.path.join(CustomInstallCommand.data_apps_folder, 'gdb')
         self._gdb_dload_file = 'gdb_win32_amd64.zip'
-        self._gdb_dload_file_sha256 = '5662a2d95bd5b28d24797709864fa8e1379a3bd103112f3c96a6c16db1e2e44a'
+        self._gdb_dload_file_sha256 = '56b18ccb0a50f536332ec5de57799342ff0cd005ca2c54288c74759b51929e4f'
         self._gdb_dload_file_valid = False
 
         if check_files:
@@ -220,7 +220,7 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
         self._gdb_version_info = 'gcc-arm-none-eabi-gcc-13.2.1-1.1-linux-x64'
         self._gdb_folder = os.path.join(CustomInstallCommandLinuxAmd64.data_apps_folder, 'gdb')
         self._gdb_dload_file = 'gdb_linux_amd64.tar.gz'
-        self._gdb_dload_file_sha256 = '65b52009ff1b7f22f5e030cc04e17e5e7d7f2436a62488aca905062a71d3944c'
+        self._gdb_dload_file_sha256 = '1252a8cafe9237de27a765376697230368eec21db44dc3f1edeb8d838dabd530'
         self._gdb_dload_file_valid = False
 
         self._check_dload_files()  # check if download files already exist and are valid
