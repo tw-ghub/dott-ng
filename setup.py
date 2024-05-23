@@ -58,8 +58,8 @@ class CustomInstallCommand(bdist_wheel):
         if mirror_url is not None:
             print(f'Using DEP_MIRROR_URL ({mirror_url}) for GCC Windows download...')
             # note: use local mirror (declared in build environment), if available
-            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-12.2.1-1.2-win32-x64.zip'
-        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-12.2.1-1.2-win32-x64'
+            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-13.2.1-1.1-win32-x64.zip'
+        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-13.2.1-1.1-win32-x64'
         self._gdb_folder = os.path.join(CustomInstallCommand.data_apps_folder, 'gdb')
         self._gdb_dload_file = 'gdb_win32_amd64.zip'
         self._gdb_dload_file_sha256 = '5662a2d95bd5b28d24797709864fa8e1379a3bd103112f3c96a6c16db1e2e44a'
@@ -216,8 +216,8 @@ class CustomInstallCommandLinuxAmd64(CustomInstallCommand):
         if mirror_url is not None:
             # note: use local mirror (declared in build environment), if available
             print(f'Using DEP_MIRROR_URL ({mirror_url}) for GCC Linux download...')
-            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-12.2.1-1.2-linux-x64.tar.gz'
-        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-12.2.1-1.2-linux-x64'
+            self._gdb_url = f'{mirror_url}/xpack-arm-none-eabi-gcc-13.2.1-1.1-linux-x64.tar.gz'
+        self._gdb_version_info = 'gcc-arm-none-eabi-gcc-13.2.1-1.1-linux-x6
         self._gdb_folder = os.path.join(CustomInstallCommandLinuxAmd64.data_apps_folder, 'gdb')
         self._gdb_dload_file = 'gdb_linux_amd64.tar.gz'
         self._gdb_dload_file_sha256 = '65b52009ff1b7f22f5e030cc04e17e5e7d7f2436a62488aca905062a71d3944c'
