@@ -16,6 +16,7 @@
 *.gz
 *.7z
 *.zip
+*.tar.*
 *.deb
 *.jar
 *.exe
