@@ -302,6 +302,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
         self._dott_target.cli_exec(f'dott-bp-nostop-tcp {self._location}')
 
         self._sock, addr = srv_sock.accept()
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         srv_sock.close()
 
         InterceptPoint._register(self)
@@ -366,6 +367,13 @@ class InterceptPoint(threading.Thread, Breakpoint):
         while self._running:
             # wait for 'breakpoint hit' message
             try:
+                # TODO: Enable main thread checking in future release.
+                # rdlist, _, _ = select.select([self._sock], [], [], .25)
+                # if not rdlist:
+                #     if not threading.main_thread().is_alive():
+                #         self._running = False
+                #         break
+
                 msg = BpMsg.read_from_socket(self._sock)
                 if msg.get_type() != BpMsg.MSG_TYPE_HIT:
                     log.warn(f'Received breakpoint message of type {msg.get_type()} while waiting for type "HIT"')

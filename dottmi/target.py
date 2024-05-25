@@ -22,6 +22,7 @@ import logging
 import os
 import threading
 import time
+import warnings
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
@@ -184,7 +185,6 @@ class Target(NotifySubscriber):
         if self._gdb_client is not None:
             # The pygdbmi 3rd party module has an issue closing the GDB client process which may result in a resource
             # warning. This is not harmful upon teardown - therefore the warning is suppressed to not confuse users.
-            import warnings
             warnings.simplefilter("ignore", ResourceWarning)
 
             self.exec_noblock('-gdb-exit')

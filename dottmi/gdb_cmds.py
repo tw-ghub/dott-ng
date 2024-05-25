@@ -213,9 +213,35 @@ class MIDottCmdCliExec(gdb.MICommand):
         res = gdb.execute(' '.join(argv), to_string=True)
         return {'res': res}
 
+class MIDottThreadState(gdb.MICommand):
+    """
+    MI command to return the inferior's thread state.
+    """
+    def __init__(self, name):
+        super().__init__(name)
+
+    def invoke(self, argv):
+        # inferior = gdb.selected_inferior()  # throws exception if inferior is running
+        # process_valid = inferior is not None and inferior.is_valid() and len(inferior.threads()) > 0
+        inferiors = gdb.inferiors()
+
+        inferior = None
+        inferior_threads = []
+        try:
+            inferior = gdb.selected_inferior()
+            inferior_threads = inferior.threads()
+        except:
+            pass
+
+        thread = gdb.selected_thread()
+        res = thread is not None and thread.is_valid() and thread.is_running()
+        return {'inferiors': inferiors, 'inferior': inferior, 'inferior_threads': inferior_threads, 'thread_running': res, 'in_intercept_point'}
+
+
 # Initialize command(s)
 DottCmdInterceptPointCmds()
 DottCmdInterceptPoint()
 DottCmdInterceptPointDelete()
 DottCmdIsRunning()
 MIDottCmdCliExec('-dott-cli-exec')
+MIDottThreadState('-dott-get-thread-state')
