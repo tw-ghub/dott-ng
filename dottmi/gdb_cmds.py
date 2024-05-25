@@ -235,7 +235,7 @@ class MIDottThreadState(gdb.MICommand):
 
         thread = gdb.selected_thread()
         res = thread is not None and thread.is_valid() and thread.is_running()
-        return {'inferiors': inferiors, 'inferior': inferior, 'inferior_threads': inferior_threads, 'thread_running': res, 'in_intercept_point'}
+        return {'inferiors': inferiors, 'inferior': inferior, 'inferior_threads': inferior_threads, 'thread_running': res}
 
 
 # Initialize command(s)
