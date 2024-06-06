@@ -83,7 +83,7 @@ class Target(NotifySubscriber):
 
         # start breakpoint handler
         self._bp_handler: BreakpointHandler = BreakpointHandler()
-        self._gdb_client.gdb_mi.response_handler.notify_subscribe(self._bp_handler, 'stopped', 'breakpoint-hit', high_prio=False)
+        #self._gdb_client.gdb_mi.response_handler.notify_subscribe(self._bp_handler, 'stopped', 'breakpoint-hit', high_prio=False)
         self._bp_handler.start()
 
         # register to get notified if the target state changes
@@ -463,6 +463,14 @@ class Target(NotifySubscriber):
                 with self._cv_target_state:
                     self._cv_target_state.notify_all()
                 time.sleep(.0001)  # pass control to other threads which decrement self._wait_halted_cnt
+
+            # if the stop reason is a breakpoint hit pass the message on to the breakpoint handler
+            reason = msg['payload']['reason'] if 'reason' in msg['payload'].keys() else None
+            if reason and reason == 'breakpoint-hit':
+                # TODO: change mechanism as it currently uses a non-public API
+                self._bp_handler._notifications.put(msg)
+                while not self._bp_handler._notifications.empty():
+                    time.sleep(.0001)  # give up control until breakpoint handler has consumed the message
 
         elif 'running' in notify_msg:
             with self._cv_target_state:

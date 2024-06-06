@@ -185,11 +185,12 @@ class HaltPoint(Breakpoint):
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
-        try:
-            self._dott_target.wait_halted()
-        except DottException as exc:
-            log.warn('Target did not change to state halted!')
-            ExceptionPropagator.propagate_exception(exc)
+        # TODO: Remove as this is abolotete. Rationale: BreakpointerHanlder is notified via Target (stopped event). Hence the target state is already halted.
+        # try:
+        #     self._dott_target.wait_halted()
+        # except DottException as exc:
+        #     log.warn('Target did not change to state halted!')
+        #     ExceptionPropagator.propagate_exception(exc)
         try:
             self.reached()
         except Exception as exc:
@@ -198,7 +199,7 @@ class HaltPoint(Breakpoint):
         self._q.put(None, block=False)
 
     def reached(self) -> None:
-        # to be implemented by sub-class as needed
+        # to be implemented by subclass as needed
         pass
 
     def eval(self, cmd: str) -> Union[int, float, bool, str]:
