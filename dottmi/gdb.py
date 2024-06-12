@@ -112,7 +112,7 @@ class GdbServerJLink(GdbServer):
             args.append(f'IP={self._jlink_addr}')
         if self._serial_number is not None:
             if self._jlink_addr is not None:
-                log.warn('JLink address and JLINK serial number given. Ignoring serial in favour of address.')
+                log.warning('JLink address and JLINK serial number given. Ignoring serial in favour of address.')
             else:
                 args.append('-select')
                 args.append(f'USB={self._serial_number}')

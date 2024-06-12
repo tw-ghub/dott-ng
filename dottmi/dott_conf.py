@@ -187,8 +187,8 @@ class DottConfExt(object):
             #                       6.50   6.50b  6.52   6.52a  6.52b  6.52c
             known_issue_versions = (65000, 65020, 65200, 65210, 65220, 65230)
             if jlink_version in known_issue_versions:
-                log.warn(f'The J-Link software with the highest version (in {jlink_path}) has known '
-                         f'issues related to SRAM download and STM32 MCUs. Please upgrade to at least v6.52d')
+                log.warning(f'The J-Link software with the highest version (in {jlink_path}) has known '
+                            f'issues related to SRAM download and STM32 MCUs. Please upgrade to at least v6.52d')
         else:
             raise DottException(f'JLink software (esp. {segger_lib_name}) not found in path {jlink_path}.')
         jlink_version = f'{str(jlink_version)[:1]}.{str(jlink_version)[1:3]}{chr(int(str(jlink_version)[-2:]) + 0x60)}'
@@ -453,8 +453,8 @@ class DottConfExt(object):
         else:
             self._conf['on_target_mem_model'] = str(self._conf['on_target_mem_model']).upper()
             if self._conf['on_target_mem_model'] not in TargetMemModel.get_keys():
-                log.warn(f'On-target memory model ({self._conf["on_target_mem_model"]}) from {self._dott_ini} is unknown. '
-                         f'Falling back to default.')
+                log.warning(f'On-target memory model ({self._conf["on_target_mem_model"]}) from {self._dott_ini} is '
+                            f'unknown. Falling back to default.')
                 self._conf['on_target_mem_model'] = default_mem_model
             else:
                 self._conf['on_target_mem_model'] = TargetMemModel[self._conf['on_target_mem_model']]
