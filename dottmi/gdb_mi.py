@@ -337,7 +337,7 @@ class GdbMiResponseHandler(threading.Thread):
                 for subscriber in subscriber_dict[key]:
                     if subscriber not in already_notified:
                         # same subscriber might be subscribed with a concrete reason or reason None; don't notify twice
-                        subscriber.notify(msg_full)
+                        subscriber.notify(msg_full, asycn_callback=True)
                         already_notified.append(subscriber)
 
         return len(already_notified)
@@ -348,12 +348,18 @@ class NotifySubscriber:
     def __init__(self):
         self._notifications: queue.Queue = queue.Queue()
 
-    def notify(self, msg: Dict) -> None:
+    def notify(self, msg: Dict, asycn_callback: bool = False) -> None:
+        """
+        Put given message into queue. Optionally execute a callback function implemented by a subclass of
+        NotifySubscriber in an own thread.
+        Args:
+            msg: Message to be put into queue.
+            asycn_callback: Run callback in an own thread
+        """
         self._notifications.put(msg)
-        # Run notification callback in own thread
-        # TODO: Re-evaluate if this is really needed.
-        #threading.Thread(target=self._notify_callback).start()
-        self._notify_callback()
+        if asycn_callback:
+            # Run notification callback in own thread
+            threading.Thread(target=self._notify_callback).start()
 
     def _notify_callback(self):
         """
@@ -376,3 +382,9 @@ class NotifySubscriber:
         Returns: Dict which was received.
         """
         return self._notifications.get(block, timeout)
+
+    def all_notificaitons_processed(self) -> bool:
+        """
+        Return True if all pending notifications have been processed, False otherwise.
+        """
+        return self._notifications.empty()

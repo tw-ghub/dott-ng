@@ -467,9 +467,8 @@ class Target(NotifySubscriber):
             # if the stop reason is a breakpoint hit pass the message on to the breakpoint handler
             reason = msg['payload']['reason'] if 'reason' in msg['payload'].keys() else None
             if reason and reason == 'breakpoint-hit':
-                # TODO: change mechanism as it currently uses a non-public API
-                self._bp_handler._notifications.put(msg)
-                while not self._bp_handler._notifications.empty():
+                self._bp_handler.notify(msg)
+                while not self._bp_handler.all_notificaitons_processed():
                     time.sleep(.0001)  # give up control until breakpoint handler has consumed the message
 
         elif 'running' in notify_msg:

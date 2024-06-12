@@ -185,12 +185,8 @@ class HaltPoint(Breakpoint):
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
-        # TODO: Remove as this is abolotete. Rationale: BreakpointerHanlder is notified via Target (stopped event). Hence the target state is already halted.
-        # try:
-        #     self._dott_target.wait_halted()
-        # except DottException as exc:
-        #     log.warn('Target did not change to state halted!')
-        #     ExceptionPropagator.propagate_exception(exc)
+        # Note: No need to check if target state is 'halted'. Notification was forwarded by target class - hence
+        #       target is already aware of the state change.
         try:
             self.reached()
         except Exception as exc:
