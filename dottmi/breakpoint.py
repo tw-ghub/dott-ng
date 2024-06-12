@@ -283,7 +283,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
         for item in InterceptPoint._intercept_points[:]:
             item.delete()
         if len(InterceptPoint._intercept_points) != 0:
-            log.warn('Not all Intercept points were deleted!')
+            log.warning('Not all Intercept points were deleted!')
 
     # ---------------------------------------------------------------------------------------------
     def __init__(self, location: [str, int], target: Target = None) -> None:
@@ -329,7 +329,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
         res = cast_str(res.get_payload())
 
         if '<optimized out>' in str(res):
-            log.warn(f'Accessed entity {cmd} is optimized out in the binary.')
+            log.warning(f'Accessed entity {cmd} is optimized out in the binary.')
 
         return res
 
@@ -377,19 +377,19 @@ class InterceptPoint(threading.Thread, Breakpoint):
 
                 msg = BpMsg.read_from_socket(self._sock)
                 if msg.get_type() != BpMsg.MSG_TYPE_HIT:
-                    log.warn(f'Received breakpoint message of type {msg.get_type()} while waiting for type "HIT"')
+                    log.warning(f'Received breakpoint message of type {msg.get_type()} while waiting for type "HIT"')
                 self._hits += 1
             except ConnectionAbortedError:
-                log.warn(f'Breakpoint {self._location}: connection aborted')
+                log.warning(f'Breakpoint {self._location}: connection aborted')
                 self._running = False
                 break
             except ConnectionResetError:
-                log.warn(f'Breakpoint {self._location}: connection reset')
+                log.warning(f'Breakpoint {self._location}: connection reset')
                 self._running = False
                 break
             except Exception as ex:
                 if self._running:
-                    log.warn(f'Breakpoint {self._location}: exception: {str(ex)}')
+                    log.warning(f'Breakpoint {self._location}: exception: {str(ex)}')
                     self._running = False
                 else:
                     # Got a socket error while no longer supposed to be running (i.e., during delete).

@@ -288,14 +288,14 @@ class Target(NotifySubscriber):
         """
         res = self.exec(f'-data-evaluate-expression "{expr}"', timeout=timeout)
         if res is None:
-            log.warn(f'Eval of {expr} did not succeed (return value is None)!')
+            log.warning(f'Eval of {expr} did not succeed (return value is None)!')
             return None
 
         res = res['payload']['value']
         ret_val = cast_str(res)
 
         if '<optimized out>' in str(ret_val):
-            log.warn(f'Accessed entity {expr} is optimized out in the target binary.')
+            log.wadning(f'Accessed entity {expr} is optimized out in the target binary.')
 
         return ret_val
 
@@ -483,7 +483,7 @@ class Target(NotifySubscriber):
                     self._cv_target_state.notify_all()
                 time.sleep(.0001)   # pass control to other threads which decrement self._wait_running_cnt
         else:
-            log.warn(f'Unhandled notification: {notify_msg}')
+            log.warning(f'Unhandled notification: {notify_msg}')
 
     def is_running(self) -> bool:
         """

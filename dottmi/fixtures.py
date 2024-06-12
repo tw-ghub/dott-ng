@@ -129,7 +129,7 @@ def _target_mem_init_noalloc(dt: Target = None) -> None:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
-        log.warn('main not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
+        log.warning('main not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
 
     # remove test hook breakpoint
     bp.delete()
@@ -155,7 +155,7 @@ def _target_mem_init_testhook(dt: Target = None) -> None:
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
-        log.warn('DOTT_test_hook_chained not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
+        log.warning('DOTT_test_hook_chained not reached. Target halted after timeout at PC: 0x%x' % dt.eval('$pc'))
 
     # remove test hook breakpoint
     bp.delete()
@@ -212,7 +212,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
-        log.warn(f'{alloc_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
+        log.warning(f'{alloc_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
     bp.delete()
 
     # adjust the stack pointer (i.e., steal the requested amount of on-target memory)
@@ -229,7 +229,7 @@ def _target_mem_init_prestack(mem_model_args: Dict = None, dt: Target = None) ->
         bp.wait_complete(timeout=float(dt.dconf.get(DottConf.keys.fixture_timeout)))
     except Exception:
         dt.halt()
-        log.warn(f'{halt_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
+        log.warning(f'{halt_location} not reached. Target halted after timeout at PC: 0x{dt.eval("$pc"):x}')
     bp.delete()
 
     # pass control to test
@@ -271,7 +271,7 @@ def target_reset_common(request, sp: str = None, pc: str = None, setup_cb: types
     elif mem_model == TargetMemModel.PRESTACK:
         yield from _target_mem_init_prestack(mem_model_args, dt=dt)
     else:
-        log.warn(f'Selected target memory allocation model is not implemented!')
+        log.warning(f'Selected target memory allocation model is not implemented!')
 
 
 # ----------------------------------------------------------------------------------------------------------------------

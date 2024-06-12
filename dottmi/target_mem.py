@@ -636,7 +636,7 @@ class TargetMemScoped(object):
             # Arm 'Procedure Call Standard for the Arm Architecture' requires double-word alignment on
             # 'public interface' (i.e., when calling functions).
             if not self._suppress_alignment_warnings:
-                log.warn('Current SP is not double-word aligned! Correcting alignment for allocated memory.')
+                log.warning('Current SP is not double-word aligned! Correcting alignment for allocated memory.')
             self._sp_init_dec -= (self._sp_init_dec % 8)
 
         # (3) decrement SP
@@ -659,26 +659,26 @@ class TargetMemScoped(object):
         if sp_curr != self._sp_init_dec:
             sp_pc_ok = False
             if not self._suppress_warnings:
-                log.warn(f'Stack pointer is not as expected (expected: 0x{self._sp_init_dec:x}, act: 0x{sp_curr:x}). '
-                         f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
-                         f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
+                log.warning(f'Stack pointer is not as expected (exp: 0x{self._sp_init_dec:x}, act: 0x{sp_curr:x}). '
+                            f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
+                            f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
         if pc_curr != self._pc_init:
             sp_pc_ok = False
             if not self._suppress_warnings:
-                log.warn(f'Program counter is not as expected (expected: 0x{self._pc_init:x}, actual: 0x{pc_curr:x}). '
-                         f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
-                         f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
+                log.warning(f'Program counter is not as expected (exp: 0x{self._pc_init:x}, actual: 0x{pc_curr:x}). '
+                            f'You should not alter execution flow within "with" block of scoped memory by using DOTT '
+                            f'functions such as "cont", "ret", "step", and "step_inst" etc.!')
 
         if sp_pc_ok:
             self._target.eval(f'$sp = {self._sp_init}')
         else:
             if not self._suppress_warnings:
-                log.warn('Not undoing stack memory allocation at end of "with" statement!')
+                log.warning('Not undoing stack memory allocation at end of "with" statement!')
 
     @staticmethod
     def __func_unavailable(*args) -> None:
-        log.warn("The functions 'alloc', 'alloc_type', and 'reset' are no longer available after the 'with ... as' "
-                 "block of TargetMemScoped!")
+        log.warning('The functions \'alloc\', \'alloc_type\', and \'reset\' are no longer available after the \'with ... as\' '
+                    'block of TargetMemScoped!')
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Note: We are not checking if there was an exception. We are always undoing (rolling back)
@@ -698,4 +698,4 @@ class TargetMemScoped(object):
             self._mem.reset = self.__func_unavailable
         else:
             if not self._suppress_warnings:
-                log.warn('GDB has been disconnected. Skipping memory cleanup when leaving TargetMemScoped block!')
+                log.warning('GDB has been disconnected. Skipping memory cleanup when leaving TargetMemScoped block!')

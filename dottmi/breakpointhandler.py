@@ -60,6 +60,6 @@ class BreakpointHandler(NotifySubscriber, threading.Thread):
                         if bp_num in self._breakpoints:
                             self._breakpoints[bp_num].reached_internal(payload)
                         else:
-                            log.warn(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
+                            log.warning(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
                 else:
                     log.error(f'stop notification received with wrong reason: {payload["reason"]}')

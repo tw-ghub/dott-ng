@@ -107,12 +107,12 @@ class GdbMi(object):
 
         elif (msg['message']) == 'error':
             if 'stopped while in a function called from GDB' in msg['payload']['msg']:
-                log.warn('Target execution was stopped by GDB. Likely reason: '
-                         'A "HaltPoint" was hit while executing a target function using "eval". '
-                         'Only use "InterceptPoint" breakpoints in this situation. '
-                         '"HaltPoint" breakpoints shall only be used in "free running mode".')
+                log.warning('Target execution was stopped by GDB. Likely reason: '
+                            'A "HaltPoint" was hit while executing a target function using "eval". '
+                            'Only use "InterceptPoint" breakpoints in this situation. '
+                            '"HaltPoint" breakpoints shall only be used in "free running mode".')
             elif 'Unknown remote qXfer reply: OK' in msg['payload']['msg']:
-                log.warn('Received message: %s' % msg['payload']['msg'])
+                log.warning('Received message: %s' % msg['payload']['msg'])
             else:
                 if 'Cannot execute this command while the target is running' in msg['payload']['msg']:
                     raise Exception('Target must be halted to execute the requested command!')
@@ -147,8 +147,8 @@ class GdbMi(object):
         try:
             self._mi_controller.write("%d%s" % (token, cmd), read_response=False)
         except IOError:
-            log.warn('Got I/O error form gdb client! GDB session might have been closed prematurely due to previous '
-                     'errors in this session. Check for any previous warning or error messages.')
+            log.warning('Got I/O error form gdb client! GDB session might have been closed prematurely due to previous '
+                        'errors in this session. Check for any previous warning or error messages.')
         return token
 
     def _write_blocking(self, cmd: str, timeout: float = None) -> Dict:
@@ -266,7 +266,7 @@ class GdbMiResponseHandler(threading.Thread):
                             msg_token = msg['token']
                             # log.debug('[MSG] %s' % msg)
                         else:
-                            log.warn('result w/o token: ')
+                            log.warning('result w/o token: ')
                         self._response_dicts['result'].put(msg_token, msg)
 
                     elif msg_type == 'console':
@@ -313,8 +313,8 @@ class GdbMiResponseHandler(threading.Thread):
                         # log.debug("[LOG] %s", msg['payload'])
 
                     else:
-                        log.warn(f'Unknown message type: {msg_type}')
-                        log.warn(f'Full message: {msg}')
+                        log.warning(f'Unknown message type: {msg_type}')
+                        log.warning(f'Full message: {msg}')
 
             except IOError as ex:
                 log.exception(ex)
