@@ -224,20 +224,16 @@ class GdbMiResponseHandler(threading.Thread):
         self._trace_commands: bool = trace_commands
         self._debug_capture: InMemoryDebugCapture = debug_capture
 
-        # Dictionaries which maintain a mapping of keys (notify_msg, notify_reason|None ) -> subscriber.
-        # High-prio subscribers are notified before normal prio subscribers.
-        self._notify_subscribers_high_prio = {}
+        # Dictionary which maintains a mapping of keys (notify_msg, notify_reason|None ) -> subscribers: List.
         self._notify_subscribers = {}
 
-    def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str | None = None,
-                         high_prio: bool = False) -> None:
-        subscriber_dict: Dict = self._notify_subscribers_high_prio if high_prio else self._notify_subscribers
+    def notify_subscribe(self, subscriber, notify_msg: str, notify_reason: str | None = None) -> None:
         key = (notify_msg, notify_reason)
 
-        if key not in subscriber_dict:
+        if key not in self._notify_subscribers:
             # subscribers for a key are maintained in a list
-            subscriber_dict[key] = []
-        subscriber_dict[key].append(subscriber)
+            self._notify_subscribers[key] = []
+        self._notify_subscribers[key].append(subscriber)
 
     def run(self) -> None:
         self._running = True
@@ -300,9 +296,9 @@ class GdbMiResponseHandler(threading.Thread):
                                 notify_reason = 'breakpoint-hit'
                                 msg['payload']['reason'] = notify_reason
 
-                        # first, notify high priority subscribers (typically the target to update target run state)
-                        num_notified = self._notify(notify_msg, notify_reason, msg, self._notify_subscribers_high_prio)
-                        num_notified += self._notify(notify_msg, notify_reason, msg, self._notify_subscribers)
+                        # Notify high subscribers (typically the target to update target run state; target may forward
+                        # notification to other relevant parties).
+                        num_notified = self._notify(notify_msg, notify_reason, msg, self._notify_subscribers)
 
                         # if there are no subscribers for this notification it is stored in a dict for later analysis
                         if num_notified == 0:
