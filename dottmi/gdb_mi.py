@@ -374,3 +374,44 @@ class NotifySubscriber:
         Returns: Dict which was received.
         """
         return self._notifications.get(block, timeout)
+
+
+class NotifySubscriberExt(threading.Thread):
+    """
+    Experimental, threaded implementation.
+    """
+    def __init__(self, process_in_thread: bool = False):
+        super().__init__(daemon=True, name='GdbMiNotifyThread')
+
+        self._notifications: queue.Queue = queue.Queue()
+
+        self._running: bool = False
+        if process_in_thread:
+            self.start()
+
+    def notify(self, msg: Dict) -> None:
+        """
+        Put given message into queue. Optionally execute a callback function implemented by a subclass of
+        NotifySubscriber in an own thread.
+        Args:
+            msg: Message to be put into queue.
+        """
+        self._notifications.put(msg, block=True)
+
+    def run(self) -> None:
+        self._running = True
+        while self._running:
+            try:
+                msg: Dict = self._notifications.get(True, timeout=1)
+            except queue.Empty:
+                if not threading.main_thread().is_alive():
+                    self._running = False
+                continue
+
+            try:
+                self._process_msg(msg)
+            except Exception as ex:
+                log.warning(ex)
+
+    def _process_msg(self, msg: Dict):
+        pass

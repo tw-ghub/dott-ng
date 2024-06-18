@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 from dottmi.breakpointhandler import BreakpointHandler
 from dottmi.dottexceptions import DottException
 from dottmi.gdb import GdbClient, GdbServer
-from dottmi.gdb_mi import NotifySubscriber
+from dottmi.gdb_mi import NotifySubscriberExt
 from dottmi.monitor import Monitor
 from dottmi.symbols import BinarySymbols
 from dottmi.target_mem import TargetMem, TargetMemNoAlloc
@@ -44,7 +44,7 @@ from dottmi.utils import cast_str, log
 logging.basicConfig(level=logging.DEBUG)
 
 
-class Target(NotifySubscriber):
+class Target(NotifySubscriberExt):
 
     def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: [DottConf | DottConfExt], auto_connect: bool = True) -> None:
         """
@@ -52,7 +52,7 @@ class Target(NotifySubscriber):
         or started externally) and a GDB client instance used to connect to the GDB server.
         If auto_connect is True (the default) the connected from GDB client to GDB server is automatically established.
         """
-        NotifySubscriber.__init__(self)
+        NotifySubscriberExt.__init__(self, process_in_thread=True)
         self._dconf: [DottConf | DottConfExt] = dconf
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
@@ -415,10 +415,7 @@ class Target(NotifySubscriber):
 
     # This callback function is called from gdbmi response handler when a new notification
     # with a target status change notification is received.
-    def _notify_callback(self):
-        # Note: The wait_for_notification call immediately returns the new message as _notify_callback was called
-        # by the notifier upon the availability of the new message. Hence, no actual waiting here.
-        msg = self.wait_for_notification()
+    def _process_msg(self, msg: Dict):
         notify_msg = msg['message']
         if 'stopped' in notify_msg:
             with self._cv_target_state:
