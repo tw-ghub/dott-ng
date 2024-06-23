@@ -22,6 +22,7 @@ import logging
 import os
 import threading
 import time
+import traceback
 from pathlib import Path, PurePosixPath
 from typing import Dict, Union, List, TYPE_CHECKING
 
@@ -68,6 +69,7 @@ class Target(NotifySubscriberExt):
         # allowing callers to wait until target is stopped or running
         self._cv_target_state: threading.Condition = threading.Condition()
         self._is_target_running: bool = True
+        self._target_state_change_reason: str | None = None
         # counters to keep track how many (threads) are lined to for a stage change notifications
         self._wait_running_cnt: int = 0
         self._wait_halted_cnt: int = 0
@@ -345,6 +347,7 @@ class Target(NotifySubscriberExt):
         """
         Returns from the function that is currently executed by the target. The remaining part of the function body
         is not executed. If a return value is provided, it is returned to the caller of the function.
+        When the 'ret' functions returns, the target is in halted state.
 
         Args:
             ret_val: Return with ret_val from the currently executed function. The function's stack frame is discarded.
@@ -354,6 +357,16 @@ class Target(NotifySubscriberExt):
         else:
             # note: we are relying on the cli here since the MI command '-exec-return' does not support return values
             self.cli_exec(f'return {ret_val}')
+        # Note: GDB's return implementation does not continue the target. Hence, not need for wait_running/halted.
+
+    def finish(self) -> None:
+        """
+        Resumes the execution of the function that is currently executed by the target until the function is exited.
+        When the 'finish' functions returns, the target is in halted state.
+        """
+        self.exec('-exec-finish')
+        self.wait_running()
+        self.wait_halted(expected_reason='function-finished')
 
     def halt(self, halt_in_it_block: bool = False) -> None:
         """
@@ -377,7 +390,7 @@ class Target(NotifySubscriberExt):
                 return
 
             self.exec('-exec-interrupt --all')
-            self.wait_halted()
+            self.wait_halted(expected_reason='signal-received')
 
         if not halt_in_it_block:
             # check if we have halted in an IT block; if yes, do instruction stepping until we have left the IT block
@@ -395,7 +408,7 @@ class Target(NotifySubscriberExt):
             self.exec('-exec-step')
             # GDB state changes to running and then back to stopped
             self.wait_running()
-            self.wait_halted()
+            self.wait_halted(expected_reason='end-stepping-range')
 
     def step_inst(self):
         """
@@ -408,7 +421,7 @@ class Target(NotifySubscriberExt):
             self.exec('-exec-step-instruction')
             # GDB state changes to running and then back to stopped
             self.wait_running()
-            self.wait_halted()
+            self.wait_halted(expected_reason='end-stepping-range')
 
     ###############################################################################################
     # Status-related target commands
@@ -416,12 +429,14 @@ class Target(NotifySubscriberExt):
     # This callback function is called from gdbmi response handler when a new notification
     # with a target status change notification is received.
     def _process_msg(self, msg: Dict):
-        notify_msg = msg['message']
+        notify_msg: str = msg['message']
+        notify_reason: str = msg['payload']['reason'] if 'reason' in msg['payload'] else None
         if 'stopped' in notify_msg:
             with self._cv_target_state:
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = False
+                self._target_state_change_reason = notify_reason
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET STOPPED DONE] {threading.current_thread().name}')
             while self._wait_halted_cnt > 0:
                 with self._cv_target_state:
@@ -433,13 +448,14 @@ class Target(NotifySubscriberExt):
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING] {msg}; '
                                                              f'Thread: {threading.current_thread().name}')
                 self._is_target_running = True
+                self._target_state_change_reason = notify_reason
                 self._gdb_client.gdb_mi.debug_capture.record(f'[TARGET RUNNING DONE] {threading.current_thread().name}')
             while self._wait_running_cnt > 0:
                 with self._cv_target_state:
                     self._cv_target_state.notify_all()
                 time.sleep(.0001)   # pass control to other threads which decrement self._wait_running_cnt
         else:
-            log.warn(f'Unhandled notification: {notify_msg}')
+            log.warning(f'Unhandled notification: {notify_msg}')
 
     def is_running(self) -> bool:
         """
@@ -461,13 +477,14 @@ class Target(NotifySubscriberExt):
         with self._cv_target_state:
             return not self._is_target_running
 
-    def wait_halted(self, wait_secs: float | None = None) -> None:
+    def wait_halted(self, wait_secs: float | None = None, expected_reason: str | None = None) -> None:
         """
         Wait until target is halted. The wait_halted command is typically not needed in user code as halt ensures that
         the target is halted when it returns.
 
         Args:
             wait_secs: Number of seconds to wait before a DottException is thrown.
+            expected_reason: Expected halt reason.
         """
         if not wait_secs:
             wait_secs = self._state_change_wait_secs
@@ -485,6 +502,16 @@ class Target(NotifySubscriberExt):
                 self._gdb_client.gdb_mi.debug_capture.dump()
                 raise DottException(f'Target did not change to "halted" state within {wait_secs} seconds.'
                                     f'Thread: {threading.current_thread().name}')
+
+            if expected_reason is not None:
+                if self._target_state_change_reason != expected_reason:
+                    log.warning('Target stopped with reason "%s" instead of expected reason "%s".',
+                                self._target_state_change_reason, expected_reason)
+                    stack_trace = traceback.extract_stack()
+
+                    for frm in stack_trace:
+                        if 'site-packages' not in frm.filename:
+                            log.warning('   %s (line: %d): %s', frm.filename, frm.lineno, frm.line)
 
     def wait_running(self, wait_secs: float | None = None) -> None:
         """

@@ -187,7 +187,7 @@ class HaltPoint(Breakpoint):
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
         try:
-            self._dott_target.wait_halted()
+            self._dott_target.wait_halted(expected_reason='breakpoint-hit')
         except DottException as exc:
             log.warn('Target did not change to state halted!')
             ExceptionPropagator.propagate_exception(exc)
