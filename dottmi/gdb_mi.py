@@ -376,11 +376,18 @@ class NotifySubscriber:
         return self._notifications.get(block, timeout)
 
 
+# TODO: - In future release replace NotifySubscriber with NotifySubscriberExt also in BreakpointHandler.
+#       - Adopt streamlined event propagation from 1.16.x release series.
 class NotifySubscriberExt(threading.Thread):
-    """
-    Experimental, threaded implementation.
-    """
     def __init__(self, process_in_thread: bool = False):
+        """
+        Constructor.
+        If not running in dedicated Thread (i.e., process_in_thread==False), the notified entity is responsible for
+        getting events from the _notifications queue in a way that does not block the GDBMI response handler (e.g.,
+        by handling notifications in a dedicated thread.
+
+        :param process_in_thread: Create a dedicated thread in which context notification messages are processed.
+        """
         super().__init__(daemon=True, name='GdbMiNotifyThread')
 
         self._notifications: queue.Queue = queue.Queue()
@@ -399,6 +406,12 @@ class NotifySubscriberExt(threading.Thread):
         self._notifications.put(msg, block=True)
 
     def run(self) -> None:
+        """
+        Thread's run method.
+        When class is instantiated with 'process_in_thread', notifications are processed in an own Thread in the
+        sequence they have arrived. Processing of a message is performed in the _process_msg method which shall be
+        implemented by a subclasses.
+        """
         self._running = True
         while self._running:
             try:
@@ -413,5 +426,9 @@ class NotifySubscriberExt(threading.Thread):
             except Exception as ex:
                 log.warning(ex)
 
-    def _process_msg(self, msg: Dict):
+    def _process_msg(self, msg: Dict) -> None:
+        """
+        Process an incoming notificaiton message.
+        :param msg: GDBMI notification message to be processed.
+        """
         pass
