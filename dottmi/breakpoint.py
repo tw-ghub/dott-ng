@@ -181,6 +181,7 @@ class HaltPoint(Breakpoint):
         try:
             self._q.get(block=True, timeout=timeout)
         except queue.Empty:
+            self._dott_target.gdb_client.gdb_mi.debug_capture.dump()
             raise TimeoutError(f'Timeout ({timeout}s) while waiting to reach halt point at {self._location}.') from None
 
     def reached_internal(self, payload=None) -> None:
@@ -356,9 +357,9 @@ class InterceptPoint(threading.Thread, Breakpoint):
         self._event.clear()
 
         if (not wait_ok) and timeout_override:
-            raise TimeoutError(f'Breakpoint {self._location} not reached after override timeout of {timeout}secs.')
+            raise TimeoutError(f'InterceptPoint {self._location} not reached after override timeout of {timeout}secs.')
         elif (not wait_ok) and (not timeout_override):
-            raise TimeoutError(f'Breakpoint {self._location} not reached after timeout of {timeout}secs.')
+            raise TimeoutError(f'InterceptPoint {self._location} not reached after timeout of {timeout}secs.')
 
     def run(self) -> None:
         self._running = True
