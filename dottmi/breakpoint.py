@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -303,6 +303,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
         self._dott_target.cli_exec(f'dott-bp-nostop-tcp {self._location}')
 
         self._sock, addr = srv_sock.accept()
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         srv_sock.close()
 
         InterceptPoint._register(self)
