@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 from dottmi.breakpointhandler import BreakpointHandler
 from dottmi.dottexceptions import DottException
 from dottmi.gdb import GdbClient, GdbServer
-from dottmi.gdb_mi import NotifySubscriberExt
+from dottmi.gdb_mi import NotifySubscriber
 from dottmi.monitor import Monitor
 from dottmi.symbols import BinarySymbols
 from dottmi.target_mem import TargetMem, TargetMemNoAlloc
@@ -45,7 +45,7 @@ from dottmi.utils import cast_str, log
 logging.basicConfig(level=logging.DEBUG)
 
 
-class Target(NotifySubscriberExt):
+class Target(NotifySubscriber):
 
     def __init__(self, gdb_server: GdbServer, gdb_client: GdbClient, monitor: Monitor, dconf: [DottConf | DottConfExt], auto_connect: bool = True) -> None:
         """
@@ -53,7 +53,7 @@ class Target(NotifySubscriberExt):
         or started externally) and a GDB client instance used to connect to the GDB server.
         If auto_connect is True (the default) the connected from GDB client to GDB server is automatically established.
         """
-        NotifySubscriberExt.__init__(self, process_in_thread=True)
+        NotifySubscriber.__init__(self, name='Target', process_in_thread=True)
         self._dconf: [DottConf | DottConfExt] = dconf
         self._load_elf_file_name = None
         self._symbol_elf_file_name = None
@@ -85,7 +85,6 @@ class Target(NotifySubscriberExt):
         # start breakpoint handler
         self._bp_handler: BreakpointHandler = BreakpointHandler()
         self._gdb_client.gdb_mi.response_handler.notify_subscribe(self._bp_handler, 'stopped', 'breakpoint-hit', high_prio=False)
-        self._bp_handler.start()
 
         # register to get notified if the target state changes
         self._gdb_client.gdb_mi.response_handler.notify_subscribe(self, 'stopped', None, high_prio=True)
@@ -357,7 +356,7 @@ class Target(NotifySubscriberExt):
         else:
             # note: we are relying on the cli here since the MI command '-exec-return' does not support return values
             self.cli_exec(f'return {ret_val}')
-        # Note: GDB's return implementation does not continue the target. Hence, not need for wait_running/halted.
+        # Note: GDB's return implementation does not continue the target. Hence, no need for wait_running/halted.
 
     def finish(self) -> None:
         """

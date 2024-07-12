@@ -344,42 +344,9 @@ class GdbMiResponseHandler(threading.Thread):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class NotifySubscriber:
-    def __init__(self):
-        self._notifications: queue.Queue = queue.Queue()
 
-    def notify(self, msg: Dict) -> None:
-        self._notifications.put(msg)
-        # Run notification callback in own thread
-        threading.Thread(target=self._notify_callback).start()
-
-    def _notify_callback(self):
-        """
-        May be implemented by a subclass and gets called in GdbMiResponseHandler thread context when a new notification
-        for the subscriber is available. If the callback handler implementation of the subclass is running longer or
-        issues (blocking) GDB calls, it is responsible to do so in a new thread to not block the GdbMiResponseHandler.
-        Otherwise, a deadlock situation might occur.
-        """
-        pass
-
-    def wait_for_notification(self, block: bool = True, timeout: float = None) -> Dict:
-        """
-        Returns a notification from the queue. Optionally blocks (with timeout) until a notification message is
-        available.
-
-        Args:
-            block: True to block while waiting for notification, False otherwise.
-            timeout: If blocking, specify the timeout when the function returns without having received and event.
-
-        Returns: Dict which was received.
-        """
-        return self._notifications.get(block, timeout)
-
-
-# TODO: - In future release replace NotifySubscriber with NotifySubscriberExt also in BreakpointHandler.
-#       - Adopt streamlined event propagation from 1.16.x release series.
-class NotifySubscriberExt(threading.Thread):
-    def __init__(self, process_in_thread: bool = False):
+class NotifySubscriber(threading.Thread):
+    def __init__(self, name: str, process_in_thread: bool = False):
         """
         Constructor.
         If not running in dedicated Thread (i.e., process_in_thread==False), the notified entity is responsible for
@@ -388,7 +355,7 @@ class NotifySubscriberExt(threading.Thread):
 
         :param process_in_thread: Create a dedicated thread in which context notification messages are processed.
         """
-        super().__init__(daemon=True, name='GdbMiNotifyThread')
+        super().__init__(daemon=True, name=f'GdbMiNotifyThread_{name}')
 
         self._notifications: queue.Queue = queue.Queue()
 

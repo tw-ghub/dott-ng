@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 #   limitations under the License.
 ###############################################################################
 
-import queue
 import threading
 from typing import Dict
 
@@ -26,12 +25,10 @@ from dottmi.utils import log
 
 
 # -------------------------------------------------------------------------------------------------
-class BreakpointHandler(NotifySubscriber, threading.Thread):
+class BreakpointHandler(NotifySubscriber):
     def __init__(self) -> None:
-        NotifySubscriber.__init__(self)
-        threading.Thread.__init__(self, name='BreakpointHandler')
+        NotifySubscriber.__init__(self, name='BreakpointHandler', process_in_thread=True)
         self._breakpoints: Dict = {}
-        self._running: bool = False
         self._bp_lock = threading.Lock()
 
     def add_bp(self, bp: Breakpoint) -> None:
@@ -42,24 +39,15 @@ class BreakpointHandler(NotifySubscriber, threading.Thread):
         with self._bp_lock:
             self._breakpoints.pop(bp.num)
 
-    def run(self) -> None:
-        self._running = True
-        while self._running:
-            try:
-                msg: Dict = self.wait_for_notification(True, timeout=0.1)
-            except queue.Empty:
-                if not threading.main_thread().is_alive():
-                    self._running = False
-                continue
-
-            if 'reason' in msg['payload']:
-                payload = msg['payload']
-                if payload['reason'] == 'breakpoint-hit':
-                    bp_num = int(payload['bkptno'])
-                    with self._bp_lock:
-                        if bp_num in self._breakpoints:
-                            self._breakpoints[bp_num].reached_internal(payload)
-                        else:
-                            log.warn(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
-                else:
-                    log.error(f'stop notification received with wrong reason: {payload["reason"]}')
+    def _process_msg(self, msg: Dict) -> None:
+        if 'reason' in msg['payload']:
+            payload = msg['payload']
+            if payload['reason'] == 'breakpoint-hit':
+                bp_num = int(payload['bkptno'])
+                with self._bp_lock:
+                    if bp_num in self._breakpoints:
+                        self._breakpoints[bp_num].reached_internal(payload)
+                    else:
+                        log.warn(f'Breakpoint with number {bp_num} not found in list of known breakpoints.')
+            else:
+                log.error(f'stop notification received with wrong reason: {payload["reason"]}')
