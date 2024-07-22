@@ -131,13 +131,13 @@ class GdbServerJLink(GdbServer):
         self._srv_process = subprocess.Popen(args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                              creationflags=cflags)
 
-        p = psutil.Process(self._srv_process.pid)
+        p: psutil.Process = psutil.Process(self._srv_process.pid)
         startup_done = False
         try:
             # query the started process until it has opened a listening socket on the expected port
             end_time = time.time() + 8
             while startup_done is False and time.time() < end_time:
-                for c in p.connections():
+                for c in p.net_connections():
                     if c.laddr.port == self.port:
                         ip_ver: str = 'IPv6' if c.family == socket.AF_INET6 else 'IPv4'
                         jlink_ser_num: str = f' (JLINK SN: {self._serial_number}) ' if self._serial_number else ' '
