@@ -125,6 +125,11 @@ class Dott(object):
         from dottmi import target
         from dottmi.gdb import GdbClient
 
+        log.warning("-------------------------------------------------------------------------------------------------")
+        log.warning(" DOTT.NG v1.6.x is considered deprecated due to an incompatibility with Windows 11!")
+        log.warning(" Please consider switching to version 1.15.x or the forthcoming version 1.17.x!")
+        log.warning("-------------------------------------------------------------------------------------------------")
+
         monitor_type = dconf.get(DottConf.keys.monitor_type)
 
         if monitor_type == 'jlink':
