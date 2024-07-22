@@ -17,8 +17,6 @@
 ###############################################################################
 from typing import List
 
-import pytest
-
 from dottmi.breakpoint import HaltPoint, InterceptPoint, InterceptPointCmds
 from dottmi.dott import DottConf, dott
 from dottmi.target_mem import TypedPtr, TargetMemScoped
