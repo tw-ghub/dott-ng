@@ -463,6 +463,7 @@ shared_install_requires = [
                        "dott-ng-runtime==1.1.1",
                        "pygdbmi==0.11.0.0",
                        "pylink-square==0.11.1",
+                       "psutil>=6.0.0",
                        "pytest",
                        "pytest-cov",
                        "pytest-instafail",
