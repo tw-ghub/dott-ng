@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -460,7 +460,7 @@ shared_author = "Thomas Winkler"
 shared_url = "https://github.com/tw-ghub/dott-ng"
 
 shared_install_requires = [
-                       "dott-ng-runtime==1.1.1",
+                       "dott-ng-runtime==1.1.2",
                        "pygdbmi==0.11.0.0",
                        "pylink-square==0.11.1",
                        "pytest",
@@ -471,6 +471,7 @@ shared_install_requires = [
                        "matplotlib",
                        "lxml"
                    ]
+
 
 def setup_dott_runtime():
     setuptools.setup(
@@ -485,7 +486,7 @@ def setup_dott_runtime():
         long_description="",
         long_description_content_type="text/markdown",
         url=shared_url,
-        packages=[],
+        packages=['../dott_ng_runtime/dott_ng_runtime'],
         data_files=[],
         platforms=['nt'],
         include_package_data=True,
@@ -508,7 +509,7 @@ def setup_dott_runtime_linux_amd64():
         long_description="",
         long_description_content_type="text/markdown",
         url=shared_url,
-        packages=[],
+        packages=['../dott_ng_runtime/dott_ng_runtime'],
         data_files=[],
         platforms=['Linux'],
         include_package_data=True,
@@ -516,6 +517,7 @@ def setup_dott_runtime_linux_amd64():
         install_requires=[],
         python_requires='>=3.10',
     )
+
 
 def setup_dott_runtime_pemicro_s32k():
     setuptools.setup(
@@ -535,9 +537,10 @@ def setup_dott_runtime_pemicro_s32k():
         platforms=['Linux', 'nt'],
         include_package_data=True,
         shared_classifiers=shared_classifiers,
-        install_requires=['dott-ng-runtime>=1.1.1'],
+        install_requires=['dott-ng-runtime>=1.1.2'],
         python_requires='>=3.10',
     )
+
 
 def setup_dott():
     setuptools.setup(

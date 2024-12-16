@@ -70,7 +70,7 @@ class BpMsg():
     def read_from_socket(cls, sock, timeout=None):
 
         remaining = cls.MSG_HDR_LEN
-        header: bytes = b''
+        header = b''
         while remaining > 0:
             header += sock.recv(remaining)
             remaining -= len(header)
@@ -99,6 +99,7 @@ class BpMsg():
         sock.sendall(header)
         if self._payload_len > 0:
             if isinstance(self._payload, str):
-                sock.sendall(bytes(self._payload, encoding='ascii'))
+                pl = bytes(self._payload.encode("ascii"))
+                sock.sendall(pl)
             else:
                 sock.sendall(self._payload)

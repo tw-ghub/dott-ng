@@ -119,35 +119,12 @@ class DottConfExt(object):
             self.set('DOTTRUNTIME', DottRuntime.IDENTIFIER)
             self.set('DOTT_RUNTIME_VER', DottRuntime.VERSION)
             self.set('DOTTGDBPATH', DottRuntime.GDBPATH)
+            self.set('DOTTGDBCLIENT', DottRuntime.GDBCLIENT)
             self.set('PYTHON_EMB_PATH', DottRuntime.PYTHON_EMB_PATH)
             self.set('PYTHON_EMB_PACKAGEPATH', DottRuntime.PYTHON_EMB_PACKAGEPATH)
 
-            # Linux: check if library dependencies are installed. Windows: They are included in the DOTT runtime.
-            if platform.system() == 'Linux':
-                res = subprocess.run([str(Path(f'{dott_runtime_path}/apps/gdb/bin/arm-none-eabi-gdb')), '--version'],
-                                     stdout=subprocess.PIPE)
-                if res.returncode != 0:
-                    raise DottException('Unable to start gdb client. This might be caused by missing dependencies.\n'
-                                        'Make sure that libdl, librt, libpthread, libutil and libncurses6 are installed.')
-
-        # If DOTTRUNTIME is set in the environment it overrides the integrated runtime in dott_data
-        # TODO: Revise or remove out of band runtime loading!
-        if os.environ.get('DOTTRUNTIME') is not None and os.environ.get('DOTTRUNTIME').strip() != '':
-            dott_runtime_path = os.environ.get('DOTTRUNTIME')
-            dott_runtime_path = dott_runtime_path.strip()
-            self.set('DOTTRUNTIME', dott_runtime_path)
-
-            if not os.path.exists(dott_runtime_path):
-                raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
-            try:
-                self._dott_runtime = SourceFileLoader('dott_ng_runtime', dott_runtime_path + os.sep + 'dott_ng_runtime.py').load_module()
-                self._dott_runtime.setup_runtime()
-                self.set('DOTT_RUNTIME_VER', self._dott_runtime.DOTT_RUNTIME_VER)
-            except Exception as ex:
-                raise Exception('Error setting up DOTT runtime.')
-
         if self.get('DOTTRUNTIME') is None:
-            raise Exception('Runtime components neither found in DOTT data path nor in DOTTRUNTIME folder.')
+            raise Exception('Runtime components not found in DOTT data path.')
 
         self._dott_runtime_path = dott_runtime_path
 
@@ -371,10 +348,7 @@ class DottConfExt(object):
                 log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
         if 'gdb_client_binary' not in self._conf:
-            default_gdb = 'arm-none-eabi-gdb.exe'
-            if platform.system() == 'Linux':
-                default_gdb = 'arm-none-eabi-gdb'
-            self._conf['gdb_client_binary'] = str(Path(f'{self.get("DOTTGDBPATH")}/{default_gdb}'))
+            self._conf['gdb_client_binary'] = self._conf['DOTTGDBCLIENT']
         log.info(f'GDB client binary:     {self._conf["gdb_client_binary"]}')
 
         if 'gdb_server_addr' not in self._conf:
