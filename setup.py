@@ -473,6 +473,8 @@ shared_install_requires = [
                    ]
 
 
+# Note: dott_ng_runtime is provisioned by the build environment!
+
 def setup_dott_runtime():
     setuptools.setup(
         cmdclass={
@@ -486,7 +488,7 @@ def setup_dott_runtime():
         long_description="",
         long_description_content_type="text/markdown",
         url=shared_url,
-        packages=['../dott_ng_rt/dott_ng_runtime'],
+        packages=['dott_ng_runtime'],
         data_files=[],
         platforms=['nt'],
         include_package_data=True,
@@ -509,7 +511,7 @@ def setup_dott_runtime_linux_amd64():
         long_description="",
         long_description_content_type="text/markdown",
         url=shared_url,
-        packages=['../dott_ng_rt/dott_ng_runtime'],
+        packages=['dott_ng_runtime'],
         data_files=[],
         platforms=['Linux'],
         include_package_data=True,
