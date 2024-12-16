@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -70,8 +70,9 @@ class BpMsg():
     def read_from_socket(cls, sock, timeout=None):
 
         remaining = cls.MSG_HDR_LEN
+        header: bytes = b''
         while remaining > 0:
-            header = sock.recv(remaining)
+            header += sock.recv(remaining)
             remaining -= len(header)
 
         magic = header[0:2]
@@ -97,6 +98,7 @@ class BpMsg():
         header = BpMsg.MSG_HDR_MAGIC + self._msg_type + payload_len_bytes
         sock.sendall(header)
         if self._payload_len > 0:
-            sock.sendall(self._payload)
-
-
+            if isinstance(self._payload, str):
+                sock.sendall(bytes(self._payload, encoding='ascii'))
+            else:
+                sock.sendall(self._payload)
