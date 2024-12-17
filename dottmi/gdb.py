@@ -353,7 +353,7 @@ class GdbClient(object):
             raise Exception('PYTHON_EMB_PATH not set. Can not load gdb command support. Aborting.')
         if platform.system() == 'Windows':
             os.environ['PATH'] = f'{python_emb_path};{my_env["PATH"]}'
-            # TODO: Needs update for windows build!
+            # FIXME: Needs update for windows build!
             os.environ['PYTHONPATH'] = '%s;%s\\lib;%s\\lib\\site-packages;%s\\DLLs' % ((python_emb_path,) * 4)
         else:
             os.environ['PYTHONPATH'] = f'{python_emb_path}:{python_emb_pkg_path}'
