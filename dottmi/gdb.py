@@ -347,13 +347,12 @@ class GdbClient(object):
 
         # set Python Embedded (used for GDB commands) path such that gdb subprocess actually finds it
         my_env = os.environ.copy()
-        python_emb_path = DottConf.get('PYTHON_EMB_PATH')
-        python_emb_pkg_path = DottConf.get('PYTHON_EMB_PACKAGEPATH')
+        python_emb_path = DottConf.get(DottConf.keys.dott_rt_python_emb_path)
+        python_emb_pkg_path = DottConf.get(DottConf.keys.dott_rt_python_emb_packagepath)
         if python_emb_path is None:
-            raise Exception('PYTHON_EMB_PATH not set. Can not load gdb command support. Aborting.')
+            raise Exception(f'{DottConf.keys.dott_rt_python_emb_path} not set. Can not load gdb command support. Aborting.')
         if platform.system() == 'Windows':
             os.environ['PATH'] = f'{python_emb_path};{my_env["PATH"]}'
-            # FIXME: Needs update for windows build!
             os.environ['PYTHONPATH'] = '%s;%s\\lib;%s\\lib\\site-packages;%s\\DLLs' % ((python_emb_path,) * 4)
         else:
             os.environ['PYTHONPATH'] = f'{python_emb_path}:{python_emb_pkg_path}'
