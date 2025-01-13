@@ -374,16 +374,16 @@ class InterceptPoint(threading.Thread, Breakpoint):
                 self._hits += 1
             except ConnectionAbortedError:
                 log.warning(f'Breakpoint {self._location}: connection aborted')
-                self._running = False
+                self.delete()
                 break
             except ConnectionResetError:
                 log.warning(f'Breakpoint {self._location}: connection reset')
-                self._running = False
+                self.delete()
                 break
             except Exception as ex:
                 if self._running:
                     log.warning(f'Breakpoint {self._location}: exception: {str(ex)}')
-                    self._running = False
+                    self.delete()
                 else:
                     # Got a socket error while no longer supposed to be running (i.e., during delete).
                     # We don't need to do anything about this.
@@ -410,9 +410,9 @@ class InterceptPoint(threading.Thread, Breakpoint):
             if self._running:
                 self._running = False
                 self._dott_target.cli_exec(f'dott-bp-nostop-delete {self._location}', timeout=1)
+                InterceptPoint._unregister(self)
                 self._sock.close()
                 self.join(timeout=1)
-                InterceptPoint._unregister(self)
         except:
             pass
 

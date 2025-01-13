@@ -184,7 +184,8 @@ class TargetMem(object):
         """
         Converts and int, bytes or str value to bytes. For an int, the minimal number of bytes needed to hold the value is used.
         Strings are encoded as ASCII.
-        :param val: Value to be converted to bytes.
+        :param val: Value to be converted to bytes. Value may be an ASCII string (char array), a byte array or a
+                    non-negative integer.
         :return: Returns the provided value into bytes.
         """
         if isinstance(val, int):
