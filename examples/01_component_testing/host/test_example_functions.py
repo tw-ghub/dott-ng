@@ -15,6 +15,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
+import time
 from typing import List
 
 from dottmi.breakpoint import HaltPoint, InterceptPoint, InterceptPointCmds
@@ -502,8 +503,3 @@ class TestExampleFunctions(object):
         arr = dt.mem.read_int32(p_arr, cnt)
         log.debug(f'HaltPoint hits: {hp_is_le.get_hits()}')
         assert arr == [5, 4, 3, 3, 3, 2, 2, 1]
-
-
-    def test_alloc_float(self, target_load, target_reset):
-        val: float = 999.123
-        dott().target.mem.alloc_type('uint32_t', -56)
