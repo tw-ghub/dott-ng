@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ from typing import Dict, Union, List, TYPE_CHECKING
 import dottmi.utils
 from dottmi.dott import DottHooks
 from dottmi.dott_conf import DottConf, DottConfExt
+from dottmi.utils import requires_rt_ge_2
 
 if TYPE_CHECKING:
     from dottmi.target_mem import TargetMem
@@ -299,7 +300,33 @@ class Target(NotifySubscriber):
         return self._gdb_client.gdb_mi.write_non_blocking(cmd)
 
     def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
+        """
+        Execute the given GDB CLI command and return MI result as dictionary. Note: This dict only contains
+        command status information but NOT the (textual) result of the executed CLI command.
+        Using cli_exec_ng is preferred over cli_exec which remains available for special (internal) cases.
+
+        Args:
+            cmd: GBM CLI command to execute.
+            timeout: Timeout as multiple (or fraction) of seconds.
+
+        Returns: GDB CLI command result string.
+        """
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
+
+    @requires_rt_ge_2
+    def cli_exec_data(self, cmd: str, timeout: float | None = None) -> str:
+        """
+        Execute the given GDB CLI command and return the result data as string.
+        Note that using this function requires DOTT.NG runtime version 2 or higher.
+
+        Args:
+            cmd: GBM CLI command to execute.
+            timeout: Timeout as multiple (or fraction) of seconds.
+
+        Returns: GDB CLI command result data string.
+        """
+        res: Dict = self._gdb_client.gdb_mi.write_blocking(f'-dott-cli-exec "{cmd}"', timeout=timeout)
+        return res['payload']['res']
 
     ###############################################################################################
     # Execution-related target commands

@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 ###############################################################################
-import _thread
 import logging
 import os
 import signal
@@ -23,6 +22,8 @@ import struct
 import threading
 from collections import deque
 from typing import Union, List, Any
+
+from dott_ng_runtime.dott_runtime import DottRuntime
 
 from dottmi.dottexceptions import DottException
 
@@ -603,3 +604,20 @@ class ExceptionPropagator:
         cls._exception = exc
         signal.raise_signal(signal.SIGABRT)
         # assert cls._exception == None
+
+
+# -------------------------------------------------------------------------------------------------
+# Decorators
+
+def requires_rt_ge_2(func):
+    """
+    This decorator is used to mark functions which at least need DOTT.NG runtime verison 2 or higher.
+    """
+    def wrapper(*args, **kwargs):
+        major = int(DottRuntime.VERSION.split('.')[0])
+        if major < 2:
+            raise DottException(f'For using function "{func.__name__}" a DOTT.NG runtime version greater or '
+                                f'equal 2.y.z is required!')
+        res = func(*args, **kwargs)
+        return res
+    return wrapper

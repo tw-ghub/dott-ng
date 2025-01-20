@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -200,10 +200,28 @@ class DottCmdIsRunning(gdb.Command):
         except Exception as ex:
             print('DOTT_RESP, %d, dott-is-running, YES, %s, DOTT_RESP_END' % (int(arg), str(ex)))
 
-
 # Initialize command(s)
 DottCmdInterceptPointCmds()
 DottCmdInterceptPoint()
 DottCmdInterceptPointDelete()
 DottCmdIsRunning()
 
+
+# ======================================================================================================================
+# New MI commands (only working with DOTT.NG runtime v2.x and hence protected by try/except for now).
+# The try/except block can be removed once runtime v2.x becomes the mandatory minimum requirement.
+try:
+    class MIDottCmdCliExec(gdb.MICommand):
+        """
+        MI command to execute the given command and return the result string.
+        """
+        def __init__(self, name):
+            super().__init__(name)
+
+        def invoke(self, argv):
+            res = gdb.execute(' '.join(argv), to_string=True)
+            return {'res': res}
+
+    MIDottCmdCliExec('-dott-cli-exec')
+except Exception as ex:
+    print("Failed to declare MI command cli-exec. Might indicate incompatible runtime version.")
