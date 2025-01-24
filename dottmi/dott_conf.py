@@ -25,7 +25,6 @@ import platform
 import subprocess
 import sys
 from ctypes import CDLL
-from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -61,6 +60,9 @@ class DottConfExt(object):
         self._dott_ini = ini_file
         self.conf = self
 
+        # check for DOTT runtime environment and parse runtime config
+        self._setup_runtime()
+
     def set(self, key: str, val: str | None) -> None:
         """
         Set a key / value pair in the configuration object.
@@ -82,21 +84,6 @@ class DottConfExt(object):
         """
         return self._conf[key] if key in self._conf.keys() else None
 
-    def set_runtime_if_unset(self, dott_runtime_path: str) -> None:
-        """
-        Sets the DOTTRUNTIME environment variable if it is not already set.
-        This allows to set / override the runtime used by DOTT. Note: Doing this manually is typically not required
-        in production environments where the DOTT runtime is installed via pip. It is typically used in development
-        environments.
-
-        Args:
-            dott_runtime_path: Path where alternative DOTT runtime is located.
-        """
-        if not os.path.exists(dott_runtime_path):
-            raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
-        if os.environ.get('DOTTRUNTIME') is None:
-            os.environ['DOTTRUNTIME'] = dott_runtime_path
-
     def get_runtime_path(self) -> str | None:
         """
         Returns the path of the DOTT runtime as used by DOTT.
@@ -110,50 +97,22 @@ class DottConfExt(object):
         self._conf[key] = value
 
     def _setup_runtime(self) -> None:
-        self.set('DOTTRUNTIME', None)
+        self.set('dott_rt_id', None)
 
         dott_runtime_path = sys.prefix + os.sep + 'dott_data'
         if os.path.exists(dott_runtime_path):
-            runtime_version: str = 'unknown'
-            with Path(dott_runtime_path + '/apps/version.txt').open() as f:
-                line = f.readline()
-                while line:
-                    if 'version:' in line:
-                        runtime_version = line.lstrip('version:').strip()
-                        break
-                    line = f.readline()
-            os.environ['DOTTGDBPATH'] = str(Path(f'{dott_runtime_path}/apps/gdb/bin'))
-            os.environ['PYTHONPATH27'] = str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13'))
-            self.set('DOTTRUNTIME', f'{dott_runtime_path} (dott-runtime package)')
-            self.set('DOTT_RUNTIME_VER', runtime_version)
-            self.set('DOTTGDBPATH', str(Path(f'{dott_runtime_path}/apps/gdb/bin')))
-            self.set('PYTHONPATH27', str(Path(f'{dott_runtime_path}/apps/python27/python-2.7.13')))
+            from dott_ng_runtime.dott_runtime import DottRuntime
+            DottRuntime.setup_runtime()
+            # Note: keys can not yet be used here as DottConf is not fully initialized.
+            self.set('dott_rt_id', DottRuntime.IDENTIFIER)
+            self.set('dott_rt_ver', DottRuntime.VERSION)
+            self.set('dott_rt_gdb_path', DottRuntime.GDBPATH)
+            self.set('dott_rt_gdb_client', DottRuntime.GDBCLIENT)
+            self.set('dott_rt_python_emb_path', DottRuntime.PYTHON_EMB_PATH)
+            self.set('dott_rt_python_emb_packagepath', DottRuntime.PYTHON_EMB_PACKAGEPATH)
 
-            # Linux: check if libpython2.7 and libnurses5 are installed. Windows: They are included in the DOTT runtime.
-            if platform.system() == 'Linux':
-                res = subprocess.run([str(Path(f'{dott_runtime_path}/apps/gdb/bin/arm-none-eabi-gdb-py')), '--version'],
-                                     stdout=subprocess.PIPE)
-                if res.returncode != 0:
-                    raise DottException('Unable to start gdb client. This might be caused by missing dependencies.\n'
-                                        'Make sure that libpython2.7 and libncurses5 are installed.')
-
-        # If DOTTRUNTIME is set in the environment it overrides the integrated runtime in dott_data
-        if os.environ.get('DOTTRUNTIME') is not None and os.environ.get('DOTTRUNTIME').strip() != '':
-            dott_runtime_path = os.environ.get('DOTTRUNTIME')
-            dott_runtime_path = dott_runtime_path.strip()
-            self.set('DOTTRUNTIME', dott_runtime_path)
-
-            if not os.path.exists(dott_runtime_path):
-                raise ValueError(f'Provided DOTT runtime path ({dott_runtime_path}) does not exist.')
-            try:
-                self._dott_runtime = SourceFileLoader('dottruntime', dott_runtime_path + os.sep + 'dottruntime.py').load_module()
-                self._dott_runtime.setup()
-                self.set('DOTT_RUNTIME_VER', self._dott_runtime.DOTT_RUNTIME_VER)
-            except Exception as ex:
-                raise Exception('Error setting up DOTT runtime.')
-
-        if self.get('DOTTRUNTIME') is None:
-            raise Exception('Runtime components neither found in DOTT data path nor in DOTTRUNTIME folder.')
+        if self.get('dott_rt_id') is None:
+            raise Exception('Runtime components not found in DOTT data path.')
 
         self._dott_runtime_path = dott_runtime_path
 
@@ -218,10 +177,9 @@ class DottConfExt(object):
         if silent:
             log.propagate = False
 
-        # setup runtime environment
-        self._setup_runtime()
-        log.info(f'DOTT runtime:          {self.get("DOTTRUNTIME")}')
-        log.info(f'DOTT runtime version:  {self.get("DOTT_RUNTIME_VER")}')
+        # print runtime environment
+        log.info(f'DOTT runtime:          {self.get(DottConf.keys.dott_rt_id)}')
+        log.info(f'DOTT runtime version:  {self.get(DottConf.keys.dott_rt_ver)}')
 
         # print working directory
         log.info(f'work directory:        {os.getcwd()}')
@@ -377,10 +335,7 @@ class DottConfExt(object):
                 log.info(f'J-LINK extra config:   {self._conf["jlink_extconf"]}')
 
         if 'gdb_client_binary' not in self._conf:
-            default_gdb = 'arm-none-eabi-gdb-py.exe'
-            if platform.system() == 'Linux':
-                default_gdb = 'arm-none-eabi-gdb-py'
-            self._conf['gdb_client_binary'] = str(Path(f'{os.environ["DOTTGDBPATH"]}/{default_gdb}'))
+            self._conf['gdb_client_binary'] = self._conf[DottConf.keys.dott_rt_gdb_client]
         log.info(f'GDB client binary:     {self._conf["gdb_client_binary"]}')
 
         if 'gdb_server_addr' not in self._conf:
@@ -551,15 +506,18 @@ class DottConf(object):
         # Timeout settings
         fixture_timeout: str = 'fixture_timeout'
 
+        # DOTT runtime
+        dott_rt_id: str = 'dott_rt_id'
+        dott_rt_ver: str = 'dott_rt_ver'
+        dott_rt_gdb_path: str = 'dott_rt_gdb_path'
+        dott_rt_gdb_client: str = 'dott_rt_gdb_client'
+        dott_rt_python_emb_path = 'dott_rt_python_emb_path'
+        dott_rt_python_emb_packagepath = 'dott_rt_python_emb_packagepath'
+
     @staticmethod
     def set(key: str, val: str) -> None:
         """See get method in :func:`DottConfExt.set`."""
         DottConf.conf.set(key, val)
-
-    @staticmethod
-    def set_runtime_if_unset(dott_runtime_path: str) -> None:
-        """See get method in :func:`DottConfExt.set_runtime_if_unset`."""
-        DottConf.conf.set_runtime_if_unset(dott_runtime_path)
 
     @staticmethod
     def get(key: str):

@@ -69,7 +69,7 @@ class CommDev(object):
 
 @pytest.fixture(scope='function')
 def i2c_comm() -> CommDev:
-    """"
+    """
     This fixture is used by tests which need to communicate with the target device using I2C.
     It relies on a RaspberryPi running the gpio daemon.
 

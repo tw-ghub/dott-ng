@@ -157,6 +157,9 @@ class Dott(object):
             gdb_server.shutdown()
             raise DottException('Connection attempt to GDB server timed out. Either GDB server is not running or GDB server is slow.'
                                 'In that case, try to increase DottConf[gdb_server_connect_timeout]') from None
+        except Exception as ex:
+            gdb_server.shutdown()
+            raise ex
 
         # add target to list of created targets to enable proper cleanup on shutdown
         if target:

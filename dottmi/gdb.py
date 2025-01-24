@@ -29,6 +29,7 @@ from pathlib import Path
 import psutil
 from psutil import NoSuchProcess
 
+from dottmi.dott_conf import DottConf
 from dottmi.dottexceptions import DottException
 from dottmi.gdb_mi import GdbMi
 from dottmi.gdbcontrollerdott import GdbControllerDott
@@ -344,16 +345,19 @@ class GdbClient(object):
         self._mi_controller: GdbControllerDott | None = None
         self._gdb_mi: GdbMi | None = None
 
-        # set Python 2.7 (used for GDB commands) path such that gdb subprocess actually finds it
+        # set Python Embedded (used for GDB commands) path such that gdb subprocess actually finds it
         my_env = os.environ.copy()
-        python27_path = os.environ.get('PYTHONPATH27')
-        if python27_path is None:
-            raise Exception('PYTHONPATH27 not set. Can not load gdb command support. Aborting.')
+        python_emb_path = DottConf.get(DottConf.keys.dott_rt_python_emb_path)
+        python_emb_pkg_path = DottConf.get(DottConf.keys.dott_rt_python_emb_packagepath)
+        if python_emb_path is None:
+            raise Exception(f'{DottConf.keys.dott_rt_python_emb_path} not set. Can not load gdb command support. Aborting.')
         if platform.system() == 'Windows':
-            os.environ['PATH'] = f'{python27_path};{my_env["PATH"]}'
-            os.environ['PYTHONPATH'] = '%s;%s\\lib;%s\\lib\\site-packages;%s\\DLLs' % ((python27_path,) * 4)
+            os.environ['PATH'] = f'{python_emb_path};{my_env["PATH"]}'
+            os.environ['PYTHONPATH'] = '%s;%s\\lib;%s\\lib\\site-packages;%s\\DLLs' % ((python_emb_path,) * 4)
         else:
-            os.environ['PYTHONPATH'] = ''
+            os.environ['PYTHONPATH'] = f'{python_emb_path}:{python_emb_pkg_path}'
+            ld_lib_path = f':{my_env["LD_LIBRARY_PATH"]}' if 'LD_LIBRARY_PATH' in my_env.keys() else ''
+            os.environ['LD_LIBRARY_PATH'] = f'{python_emb_path}{ld_lib_path}'
 
         my_dir = os.path.dirname(os.path.realpath(__file__))
         os.environ['PYTHONPATH'] += os.pathsep + str(Path(my_dir + '/..'))
