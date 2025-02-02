@@ -301,32 +301,33 @@ class Target(NotifySubscriber):
 
     def cli_exec(self, cmd: str, timeout: float | None = None) -> Dict:
         """
-        Execute the given GDB CLI command and return MI result as dictionary. Note: This dict only contains
-        command status information but NOT the (textual) result of the executed CLI command.
-        Using cli_exec_ng is preferred over cli_exec which remains available for special (internal) cases.
+        Execute the given GDB CLI command and return MI result as dictionary. Note: This dictionary only contains
+        command status information but NOT the (textual) result of the executed CLI command!
+        To get the CLI command output, use cli_exec_data.
 
         Args:
             cmd: GBM CLI command to execute.
             timeout: Timeout as multiple (or fraction) of seconds.
 
-        Returns: GDB CLI command result string.
+        Returns: GDB CLI command result (status code) in dictionary.
         """
         return self._gdb_client.gdb_mi.write_blocking(f'-interpreter-exec console "{cmd}"', timeout=timeout)
 
     @requires_rt_ge_2
     def cli_exec_data(self, cmd: str, timeout: float | None = None) -> str:
         """
-        Execute the given GDB CLI command and return the result data as string.
+        Execute the given GDB CLI command and returns the result data as string. In contrast to cli_exec, this
+        function does provide the full output of the CLI command (and not just the result).
         Note that using this function requires DOTT.NG runtime version 2 or higher.
 
         Args:
             cmd: GBM CLI command to execute.
             timeout: Timeout as multiple (or fraction) of seconds.
 
-        Returns: GDB CLI command result data string.
+        Returns: GDB CLI command output as string.
         """
         res: Dict = self._gdb_client.gdb_mi.write_blocking(f'-dott-cli-exec "{cmd}"', timeout=timeout)
-        return res['payload']['res']
+        return res['payload']['res'].strip()
 
     ###############################################################################################
     # Execution-related target commands
