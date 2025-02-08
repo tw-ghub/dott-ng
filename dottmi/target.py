@@ -188,6 +188,18 @@ class Target(NotifySubscriber):
             self._gdb_server.shutdown()
             self._gdb_server = None
 
+    def get_srv_port(self) -> int:
+        """
+        Returns port of GDB server instance.
+        """
+        return self._gdb_server.port
+
+    def get_srv_addr(self) -> int:
+        """
+        Returns address of GDB server instance.
+        """
+        return self._gdb_server.addr
+
     def __del__(self):
         self.disconnect()
 
