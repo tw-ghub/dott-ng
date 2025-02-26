@@ -30,6 +30,8 @@ def setup_module(request):
     Generate all register access classes required by the tests.
     """
     TestSvd.create_reg_file('regs_stm32f072x.py')
+    TestSvd.create_reg_file('regs_peripheral_prefix_stm32f072x.py', args='-p')
+    TestSvd.create_reg_file('regs_peripheral_prefix_and_common_prefix_stm32f072x.py', args='-p -r Reg_')
     TestSvd.create_reg_file('regs_prefix_stm32f072x.py', args='-r Reg_')
     TestSvd.create_reg_file('regs_device_stm32f072x.py', args='-d Nucleo')
     TestSvd.create_reg_file('regs_merged_stm32f072x.py',
@@ -76,12 +78,42 @@ class TestSvd:
 
         stm32_regs = STM32F072xRegisters()
 
-        stm32_regs.CFGR.fetch()
+        stm32_regs.CFGR.fetch()  # CRS_CFGR
         log.debug('0x%x' % stm32_regs.CFGR.raw)
         assert stm32_regs.CFGR.raw == 0x2022bb7f
         stm32_regs.PRER.fetch()
-        log.debug('0x%x' % stm32_regs.PRER.raw)
+        log.debug('0x%x' % stm32_regs.PRER.raw) # RTC_PRER
         assert stm32_regs.PRER.raw == 0x007F00FF
+
+    def test_stm32f072_peripheral_prefix(self, target_load, target_reset):
+        """
+        Access registers on STM32 and checks if they are having the expected reset value.
+        """
+        from .regs_peripheral_prefix_stm32f072x import STM32F072xRegisters
+
+        stm32_regs = STM32F072xRegisters()
+
+        stm32_regs.CRS_CFGR.fetch()
+        log.debug('0x%x' % stm32_regs.CRS_CFGR.raw)
+        assert stm32_regs.CRS_CFGR.raw == 0x2022bb7f
+        stm32_regs.RTC_PRER.fetch()
+        log.debug('0x%x' % stm32_regs.RTC_PRER.raw)
+        assert stm32_regs.RTC_PRER.raw == 0x007F00FF
+
+    def test_stm32f072_peripheral_prefix_and_common_prefix(self, target_load, target_reset):
+        """
+        Access registers on STM32 and checks if they are having the expected reset value.
+        """
+        from .regs_peripheral_prefix_and_common_prefix_stm32f072x import STM32F072xRegisters
+
+        stm32_regs = STM32F072xRegisters()
+
+        stm32_regs.Reg_CRS_CFGR.fetch()
+        log.debug('0x%x' % stm32_regs.Reg_CRS_CFGR.raw)
+        assert stm32_regs.Reg_CRS_CFGR.raw == 0x2022bb7f
+        stm32_regs.Reg_RTC_PRER.fetch()
+        log.debug('0x%x' % stm32_regs.Reg_RTC_PRER.raw)
+        assert stm32_regs.Reg_RTC_PRER.raw == 0x007F00FF
 
     def test_stm32f072_prefix(self, target_load, target_reset):
         """
