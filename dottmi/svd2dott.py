@@ -33,7 +33,7 @@ class SVD2Dott:
     format to a Python representation that then be used directly with the DOTT framework.
     """
     def __init__(self, svd_file: str, additional_svd_files: List[str], out_file: str, device_name: str | None = None,
-                 newline: str = '\n', reg_prefix: str | None = None) -> None:
+                 newline: str = '\n', reg_prefix: str | None = None, use_peripheral_prefix: bool = False) -> None:
         self._additional_svd_files: List[str] = additional_svd_files
         self._device_name: str | None = device_name
         self._device_regs: List[Tuple[str, int]] = []
@@ -41,6 +41,7 @@ class SVD2Dott:
         self._newline = newline
         self._out_file: str = out_file
         self._reg_prefix: str = reg_prefix if reg_prefix else ''
+        self._use_peripheral_prefix: bool = use_peripheral_prefix
         self._svd_xml = lxml.etree.parse(svd_file)
 
     @staticmethod
@@ -105,8 +106,11 @@ class SVD2Dott:
             name_last: str = name
 
     def _emit_registers(self, f: TextIO, xml_peripheral, peripheral_base_addr: int) -> None:
+        peripheral_name: str = self._get_node_text(xml_peripheral, 'name')
         for register in xml_peripheral.xpath('./registers/register'):
             name: str = self._get_node_text(register, 'name')
+            if self._use_peripheral_prefix:
+                name = f'{peripheral_name}_{name}'
             try:
                 access: str = self._get_node_text(register, 'access')
             except ValueError:
@@ -230,6 +234,9 @@ def main():
                         help='Device name. Overrides device name in SVD file.')
     parser.add_argument('-r', '--reg-prefix', dest='reg_prefix', required=False, default=None,
                         help='Register class prefix (default is none).')
+    parser.add_argument('-p', '--reg-peripheral-prefix', dest='reg_peripheral_prefix', required=False,
+                        default=False, action='store_true',
+                        help='Use peripheral name as prefix for register class (default is none). Mutual exclusive with -r.')
     parser.add_argument('-n', '--newline', dest='newline', required=False, type=str,
                         choices=['unix', 'dos'], default='unix',
                         help='Newline type (unix, dos) used in output file.')
@@ -249,7 +256,8 @@ def main():
                         args.output,
                         args.device,
                         newline,
-                        args.reg_prefix)
+                        args.reg_prefix,
+                        args.reg_peripheral_prefix)
     svd2dott.generate()
 
 
