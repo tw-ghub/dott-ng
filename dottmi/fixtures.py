@@ -306,10 +306,13 @@ def target_reset_flash(request) -> None:
 @pytest.fixture(scope='function')
 def live_access():
     """
+    !WARNING!: This fixture is deprecated and will be removed in one of the next DOTT versions!
+
     This fixture provides access to target memory while the target is running.
 
     Returns: Instance of TargetLive which provides memory read/write functions while target is running.
     """
+    log.warning('The "live_access" fixture is deprecated and will be removed in one of the next DOTT releases!')
     live = TargetDirect()
     yield live
     live.disconnect()

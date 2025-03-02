@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ from matplotlib import pyplot
 from dottmi.breakpoint import HaltPoint, InterceptPoint
 from dottmi.dott import dott
 from dottmi.pylinkdott import TargetDirect
-from dottmi.utils import DOTT_LABEL, log
+from dottmi.utils import DOTT_LABEL
 
 
 class TestCounters(object):
@@ -55,7 +55,7 @@ class TestCounters(object):
     # \amsTestType System
     # \amsTestReqs RS_0110, RS_0280
     @pytest.mark.live_access
-    def test_SystickRunningLive(self, target_load, target_reset, live_access):
+    def test_SystickRunningLive(self, target_load, target_reset):
         cnt_addr = dott().target.eval('&_tick_cnt')
         cnt_last = dott().target.eval('_tick_cnt')
         assert (0 == cnt_last), 'Systick count shall initially be zero.'
@@ -63,7 +63,7 @@ class TestCounters(object):
 
         for i in range(10):
             time.sleep(.5)
-            cnt = live_access.mem_read_32(cnt_addr)
+            cnt = dott().target.monitor.direct.mem_read_32(cnt_addr)
             assert (cnt > cnt_last), 'Systick counter should have advanced'
             cnt_last = cnt
 
@@ -76,7 +76,7 @@ class TestCounters(object):
     # \amsTestType System
     # \amsTestReqs RS_0110, RS_0280
     @pytest.mark.live_access
-    def test_SystickSampleLive(self, target_load, target_reset, live_access):
+    def test_SystickSampleLive(self, target_load, target_reset):
         if os.environ.get('JENKINS_HOME') and os.name == 'nt':
             pytest.skip('Skipping plotting on headless Windows test system.')
 
@@ -100,7 +100,7 @@ class TestCounters(object):
         dott().target.cont()
 
         addr = dott().target.eval('&_tick_cnt')
-        (host_time, msecs_samples) = sample_mem_addr(addr, 1.0, live_access, plot_live=False)
+        (host_time, msecs_samples) = sample_mem_addr(addr, 1.0, dott().target.monitor.direct, plot_live=False)
 
         dott().target.halt()
 
@@ -142,7 +142,7 @@ class TestCounters(object):
     # \amsTestReqs RS_0110, RS_0280, RS_0290, RS_0300
     @pytest.mark.irq_testing
     @pytest.mark.live_access
-    def test_TimerManualIrqAdvanced(self, target_load, target_reset, live_access):
+    def test_TimerManualIrqAdvanced(self, target_load, target_reset):
         APB1ENR = 0x4002101c  # APB1 enable register
         ISPR = 0xE000E200  # interrupt set pending register
 
@@ -173,7 +173,7 @@ class TestCounters(object):
         # trigger the TIM7 interrupt)
         dott().target.cont()
         for i in range(4):
-            live_access.mem_write_32(ISPR, [0x000040000])
+            dott().target.monitor.direct.mem_write_32(ISPR, [0x000040000])
             ip_tmr.wait_complete()
 
         # halt target and check that timer count actually is 8 (interrupt was raised 4 times but our intercept point

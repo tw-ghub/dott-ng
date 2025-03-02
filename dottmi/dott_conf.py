@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -482,6 +482,7 @@ class DottConf(object):
         jlink_speed: str = 'jlink_speed'
         jlink_serial: str = 'jlink_serial'
         jlink_server_addr: str = 'jlink_server_addr'
+        jlink_server_port: str = 'jlink_server_port'
         jlink_script: str = 'jlink_script'
         jlink_extconf: str = 'jlink_extconf'
 
