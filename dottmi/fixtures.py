@@ -339,3 +339,10 @@ def pytest_collection_finish() -> None:
     first test is run.
     """
     dott()
+
+
+def pytest_sessionfinish(session, exitstatus) -> None:
+    """
+    Cleanly shut down DOTT at end of test session by importing this function into your test session.
+    """
+    dott().shutdown()

@@ -21,7 +21,7 @@ import os
 import pytest
 
 from dottmi.dott import DottConf, dott
-from dottmi.fixtures import target_reset_common, target_load_flash, target_load_sram, target_reset_flash, pytest_collection_finish
+from dottmi.fixtures import target_reset_common, target_load_flash, target_load_sram, target_reset_flash, pytest_collection_finish, pytest_sessionfinish
 
 # check if the DOTT_RUN_SRAM environment variable is 'yes'; if so execute the tests with the SRAM-based binary.
 postfix = ''

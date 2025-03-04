@@ -94,6 +94,12 @@ class Monitor(abc.ABC):
         """
         raise NotImplementedError('This monitor implementation does not implement direct access.')
 
+    def cleanup(self):
+        """
+        Perform whatever cleanup is required by the monitor implementation (if any).
+        """
+        pass
+
     def create_gdb_server(self, dconf: [DottConf | DottConfExt]) -> GdbServer:
         """
         Create new GDB server instance. If the configuration contains a gdb server address it is assumed that a GDB server is already running at this
@@ -176,6 +182,11 @@ class MonitorJLink(Monitor):
             self._direct = TargetDirect(jlink_server_addr, jlink_server_port, jlink_serial, device_name)
 
         return self._direct
+
+    def cleanup(self):
+        if self._direct:
+            self._direct.disconnect()
+            self._direct = None
 
 
 class MonitorOpenOCD(Monitor):
