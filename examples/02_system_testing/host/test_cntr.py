@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ from matplotlib import pyplot
 from dottmi.breakpoint import HaltPoint, InterceptPoint
 from dottmi.dott import dott
 from dottmi.pylinkdott import TargetDirect
-from dottmi.utils import DOTT_LABEL
+from dottmi.utils import DOTT_LABEL, log
 
 
 class TestCounters(object):

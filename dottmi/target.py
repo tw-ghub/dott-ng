@@ -187,7 +187,6 @@ class Target(NotifySubscriber):
         if self._gdb_server is not None:
             self._gdb_server.shutdown()
             self._gdb_server = None
-        self.monitor.cleanup()
 
     def __del__(self):
         self.disconnect()

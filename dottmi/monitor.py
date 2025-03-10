@@ -1,6 +1,6 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
-#   Copyright (c) 2023-2025 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2023 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import typing
 from dottmi import utils
 from dottmi.dott_conf import DottConf, DottConfExt
 from dottmi.gdb import GdbServer, GdbServerExternal, GdbServerJLink, GdbServerPEMicro
-from dottmi.pylinkdott import TargetDirect
 
 if typing.TYPE_CHECKING:
     from dottmi.target import Target
@@ -38,7 +37,7 @@ class Monitor(abc.ABC):
     be implemented in a generic way.
     """
     def __init__(self):
-        self._target: Target | None = None
+        self._target = None
 
     def set_target(self, target: Target):
         self._target = target
@@ -80,26 +79,6 @@ class Monitor(abc.ABC):
     def _instantiate_gdb_server(self, dconf: [DottConf | DottConfExt]):
         pass
 
-    @property
-    def direct(self) -> TargetDirect:
-        """
-        This property provides direct access to the debug monitor. It bypassed GDB (and hence DOTT) entirely.
-        CAUTION: Bypassing GDB implies that GDB (and hence DOTT) might get out of sync with target state! Therefore,
-        use this feature with care! Accessing features of the debug monitor (probe) which are not supported by
-        GDB directly is considered save (e.g., additional GPIO pins of the probe). Also, reading target memory is
-        considered safe.
-        However, writing and hence altering target state via this path may lead to out of sync states.
-        Also, be aware that this type of direct access implementation is debug monitor (probe) specific and hence is
-        not portable across different debug monitor (probe) environments!
-        """
-        raise NotImplementedError('This monitor implementation does not implement direct access.')
-
-    def cleanup(self):
-        """
-        Perform whatever cleanup is required by the monitor implementation (if any).
-        """
-        pass
-
     def create_gdb_server(self, dconf: [DottConf | DottConfExt]) -> GdbServer:
         """
         Create new GDB server instance. If the configuration contains a gdb server address it is assumed that a GDB server is already running at this
@@ -120,11 +99,6 @@ class Monitor(abc.ABC):
 
 
 class MonitorJLink(Monitor):
-
-    def __init__(self):
-        super().__init__()
-        self._direct: TargetDirect | None = None
-
     def _instantiate_gdb_server(self, dconf: [DottConf | DottConfExt]):
         srv_addr = dconf.get(DottConf.keys.gdb_server_addr)
 
@@ -170,23 +144,6 @@ class MonitorJLink(Monitor):
 
     def xpsr_name(self) -> str:
         return 'xpsr'
-
-    @property
-    def direct(self) -> TargetDirect:
-        if not self._direct:
-            # Create TargetDirect upon first access
-            jlink_server_addr: str = self._target.dconf.get(DottConf.keys.jlink_server_addr)
-            jlink_server_port: str = self._target.dconf.get(DottConf.keys.jlink_server_addr)
-            jlink_serial: str = self._target.dconf.get(DottConf.keys.jlink_serial)
-            device_name: str = self._target.dconf.get(DottConf.keys.device_name)
-            self._direct = TargetDirect(jlink_server_addr, jlink_server_port, jlink_serial, device_name)
-
-        return self._direct
-
-    def cleanup(self):
-        if self._direct:
-            self._direct.disconnect()
-            self._direct = None
 
 
 class MonitorOpenOCD(Monitor):

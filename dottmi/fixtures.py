@@ -306,13 +306,10 @@ def target_reset_flash(request) -> None:
 @pytest.fixture(scope='function')
 def live_access():
     """
-    !WARNING!: This fixture is deprecated and will be removed in one of the next DOTT versions!
-
     This fixture provides access to target memory while the target is running.
 
     Returns: Instance of TargetLive which provides memory read/write functions while target is running.
     """
-    log.warning('The "live_access" fixture is deprecated and will be removed in one of the next DOTT releases!')
     live = TargetDirect()
     yield live
     live.disconnect()
@@ -339,10 +336,3 @@ def pytest_collection_finish() -> None:
     first test is run.
     """
     dott()
-
-
-def pytest_sessionfinish(session, exitstatus) -> None:
-    """
-    Cleanly shut down DOTT at end of test session by importing this function into your test session.
-    """
-    dott().shutdown()

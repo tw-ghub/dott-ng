@@ -16,7 +16,7 @@
 ###############################################################################
 
 from dottmi.dott import DottConf
-from dottmi.fixtures import target_load_flash, target_reset_flash, pytest_sessionfinish
+from dottmi.fixtures import target_load_flash, target_reset_flash
 
 # set binaries used for the tests in this folder (relative to main conftest file)
 DottConf.conf[DottConf.keys.app_load_elf] = f'01_component_testing/target/build/dott_example_01/dott_example_01.bin.elf'

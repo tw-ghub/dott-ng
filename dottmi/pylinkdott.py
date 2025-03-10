@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -58,23 +58,16 @@ class _JlinkDott(JLink):
 
 # -------------------------------------------------------------------------------------------------
 class TargetDirect(object):
-    def __init__(self, jlink_srv_addr: str | None = None, jlink_srv_port: str | None = None,
-                 jlink_serial: str | None = None, device_name: str | None = None):
+    def __init__(self):
+        device_name: str = DottConf.get('device_name')
+        jlink_ip_addr = DottConf.get('jlink_server_addr')
+        jlink_port = DottConf.get('jlink_server_port')
+        jlink_serial = DottConf.get('jlink_serial')
 
-        # Pick values from default (primary) DottConfg if none are provided
-        jlink_serial: str | None = jlink_serial if jlink_serial else DottConf.get(DottConf.keys.jlink_serial)
-        jlink_srv_addr: str | None = jlink_srv_addr if jlink_srv_addr else DottConf.get(DottConf.keys.jlink_server_addr)
-        jlink_srv_port: str | None = jlink_srv_port if jlink_srv_port else DottConf.get(DottConf.keys.jlink_server_port)
-        device_name: str | None = device_name if device_name else DottConf.get(DottConf.keys.device_name)
+        jlink_addr_port = f'{jlink_ip_addr}:{jlink_port}' if jlink_ip_addr is not None else None
 
-        jlink_serial_int: int | None = int(jlink_serial) if jlink_serial else None
-
-        # If no J-Link server address is provided, a local connection is established. The J-Link serial is used to
-        # dis-disambiguate the J-Link to use if multiple are connect. If multiple J-Links are connected and no serial
-        # number is given, a popup will be presented by the J-Link DLL.
-        jlink_addr_port = f'{jlink_srv_addr}:{jlink_srv_port}' if jlink_srv_addr is not None else None
         self._jlink = _JlinkDott()
-        self._jlink.open(jlink_serial_int, jlink_addr_port)
+        self._jlink.open(jlink_serial, jlink_addr_port)
         self._jlink.connect(device_name, verbose=False)
 
     def mem_read_32(self, addr: int, cnt: int = 1) -> int:
