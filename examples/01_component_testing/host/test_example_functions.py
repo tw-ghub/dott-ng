@@ -86,6 +86,10 @@ class TestExampleFunctions(object):
         p_b = dt.mem.alloc_type('uint32_t', val=12)
         res = dt.eval(f'example_AdditionPtr({p_a}, {p_b})')
         assert(21 == res), 'Unexpected  return value'
+        # import pdb
+        # pdb.set_trace()
+        import IPython
+        IPython.embed()
 
     ##
     # \amsTestDesc Test function call with two pointer arguments. Use implementation variant without GDB convenience
