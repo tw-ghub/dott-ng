@@ -460,7 +460,7 @@ shared_author = "Thomas Winkler"
 shared_url = "https://github.com/tw-ghub/dott-ng"
 
 shared_install_requires = [
-                       "dott-ng-runtime>=1.1.2",
+                       "dott-ng-runtime>=1.1.2,==2.13.*",
                        "pygdbmi==0.11.0.0",
                        "pylink-square==0.11.1",
                        "psutil>=6.0.0",
@@ -540,7 +540,7 @@ def setup_dott_runtime_pemicro_s32k():
         platforms=['Linux', 'nt'],
         include_package_data=True,
         shared_classifiers=shared_classifiers,
-        install_requires=['dott-ng-runtime>=1.1.2'],
+        install_requires=['dott-ng-runtime>=1.1.2,==2.13.*'],
         python_requires='>=3.10',
     )
 
