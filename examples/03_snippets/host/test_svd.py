@@ -33,6 +33,8 @@ def setup_module(request):
     TestSvd.create_reg_file('regs_peripheral_prefix_stm32f072x.py', args='-p')
     TestSvd.create_reg_file('regs_peripheral_prefix_and_common_prefix_stm32f072x.py', args='-p -r Reg_')
     TestSvd.create_reg_file('regs_prefix_stm32f072x.py', args='-r Reg_')
+    TestSvd.create_reg_file('regs_grouped_stm32f072x.py', args='-g')  # implies '-p'
+    TestSvd.create_reg_file('regs_grouped_prefix_stm32f072x.py', args='-g -r Reg_')  # implies '-p'
     TestSvd.create_reg_file('regs_device_stm32f072x.py', args='-d Nucleo')
     TestSvd.create_reg_file('regs_merged_stm32f072x.py',
                             in_file='03_snippets/host/data/STM32F072x.svd 03_snippets/host/data/Cortex-M0.svd')
@@ -130,9 +132,39 @@ class TestSvd:
         log.debug('0x%x' % stm32_regs.Reg_PRER.raw)
         assert stm32_regs.Reg_PRER.raw == 0x007F00FF
 
+    def test_stm32f072_grouped(self, target_load, target_reset):
+        """
+        Same test as previous one but using peripheral grouping for registers (supplied via command line parameter).
+        """
+        from .regs_grouped_stm32f072x import STM32F072xRegisters
+
+        stm32_regs = STM32F072xRegisters()
+
+        stm32_regs.CRS.CFGR.fetch()
+        log.debug('0x%x' % stm32_regs.CRS.CFGR.raw)
+        assert stm32_regs.CRS.CFGR.raw == 0x2022bb7f
+        stm32_regs.RTC.PRER.fetch()
+        log.debug('0x%xs' % stm32_regs.RTC.PRER.raw)
+        assert stm32_regs.RTC.PRER.raw == 0x007F00FF
+
+    def test_stm32f072_grouped_prefix(self, target_load, target_reset):
+        """
+        Same test as previous one but using peripheral grouping and prefix for registers (supplied via command line parameter).
+        """
+        from .regs_grouped_prefix_stm32f072x import STM32F072xRegisters
+
+        stm32_regs = STM32F072xRegisters()
+
+        stm32_regs.CRS.CFGR.fetch()
+        log.debug('0x%x' % stm32_regs.CRS.CFGR.raw)
+        assert stm32_regs.CRS.CFGR.raw == 0x2022bb7f
+        stm32_regs.RTC.PRER.fetch()
+        log.debug('0x%xs' % stm32_regs.RTC.PRER.raw)
+        assert stm32_regs.RTC.PRER.raw == 0x007F00FF
+
     def test_stm32f072_device(self, target_load, target_reset):
         """
-        same test as previous one but using device name (supplied via command line paramter).
+        Same test as previous one but using device name (supplied via command line paramter).
         """
         from .regs_device_stm32f072x import NucleoRegisters
 

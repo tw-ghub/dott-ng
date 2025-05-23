@@ -33,14 +33,16 @@ class SVD2Dott:
     format to a Python representation that then be used directly with the DOTT framework.
     """
     def __init__(self, svd_file: str, additional_svd_files: List[str], out_file: str, device_name: str | None = None,
-                 newline: str = '\n', reg_prefix: str | None = None, use_peripheral_prefix: bool = False) -> None:
+                 newline: str = '\n', reg_prefix: str | None = None, use_peripheral_prefix: bool = False,
+                 reg_group: bool = False) -> None:
         self._additional_svd_files: List[str] = additional_svd_files
         self._device_name: str | None = device_name
-        self._device_regs: List[Tuple[str, int]] = []
+        self._device_regs: List[Tuple[str, str, int]] = []  # reg name, peripheral name, reg address
         self._license_text: str | None = None
         self._newline = newline
         self._out_file: str = out_file
         self._reg_prefix: str = reg_prefix if reg_prefix else ''
+        self._reg_group: bool = reg_group
         self._use_peripheral_prefix: bool = use_peripheral_prefix
         self._svd_xml = lxml.etree.parse(svd_file)
 
@@ -58,14 +60,45 @@ class SVD2Dott:
                 """
                 This class defines all registers together with their address of device {self._device_name}.
                 """
-
                 def __init__(self, dt: Target | None = None) -> None:
                     super().__init__(dt)
         '''))
 
-        for reg, addr in self._device_regs:
+        for reg, periph, addr in self._device_regs:
             preg = f'{self._reg_prefix}{reg}'
             f.write(tw.indent(f'self.{preg} = {preg}({hex(addr)}, self){self._newline}', ' '*8))
+
+    def _emit_device_peripherals_and_registers(self, f: TextIO) -> None:
+        active_periph: str | None = None
+        for reg, periph, addr in self._device_regs:
+            if periph != active_periph:
+                active_periph = periph
+                f.write(tw.dedent(f'''
+                    class Peripheral{periph}:
+                        """
+                        This class instantiates all registers of peripheral {periph} together with their address.
+                        """
+                        def __init__(self, dev: DeviceRegsDott) -> None:
+                '''))
+
+            preg = f'{self._reg_prefix}{reg}'
+            f.write(tw.indent(f'self.{reg.removeprefix(f'{periph}_')} = '
+                              f'{preg}({hex(addr)}, dev){self._newline}', ' '*8))
+
+        f.write(tw.dedent(f'''
+            class {self._device_name}Registers(DeviceRegsDott):
+                """
+                This class instantiates all device peripherals of device {self._device_name}.
+                """
+                def __init__(self, dt: Target | None = None) -> None:
+                    super().__init__(dt)
+        '''))
+
+        active_periph: str | None = None
+        for reg, periph, addr in self._device_regs:
+            if periph != active_periph:
+                f.write(tw.indent(f'self.{periph} = Peripheral{periph}(self){self._newline}', ' ' * 8))
+                active_periph = periph
 
     def _do_overlap(self, lsb: int, msb: int, lsb_last: int, msb_last: int) -> bool:
         last_set = set(range(lsb_last, msb_last +1 ))
@@ -77,6 +110,7 @@ class SVD2Dott:
         lsb_last: int | None = None
         msb_last: int | None = None
 
+        name_last: str = ''
         for regbits in xml_register.xpath("./fields/field"):
             name: str = self._get_node_text(regbits, "name")
 
@@ -103,7 +137,7 @@ class SVD2Dott:
                           f'Please check (and correct) input data!')
             lsb_last = lsb_i
             msb_last = msb_i
-            name_last: str = name
+            name_last = name
 
     def _emit_registers(self, f: TextIO, xml_peripheral, peripheral_base_addr: int) -> None:
         peripheral_name: str = self._get_node_text(xml_peripheral, 'name')
@@ -126,7 +160,7 @@ class SVD2Dott:
             except:
                 reset_value: str = ''
 
-            self._device_regs.append((name, peripheral_base_addr + addr_offset))
+            self._device_regs.append((name, peripheral_name, peripheral_base_addr + addr_offset))
 
             decr_formatted: str = tw.indent(tw.fill(descr, width=80), ' '*4)
             description = tw.indent(f"{os.linesep}Description:{os.linesep}{decr_formatted}", ' ' * 4) \
@@ -215,7 +249,10 @@ class SVD2Dott:
             f.write(os.linesep)
 
             self._emit_peripherals(f)
-            self._emit_device_registers(f)
+            if self._reg_group:
+                self._emit_device_peripherals_and_registers(f)
+            else:
+                self._emit_device_registers(f)
 
 
 def main():
@@ -237,6 +274,8 @@ def main():
     parser.add_argument('-p', '--reg-peripheral-prefix', dest='reg_peripheral_prefix', required=False,
                         default=False, action='store_true',
                         help='Use peripheral name as prefix for register class (default is none). Mutual exclusive with -r.')
+    parser.add_argument('-g', '--group-regs', dest='reg_group', required=False, default=False,
+                        action='store_true', help='Group registers based on the peripheral they belong to (implies also -p).')
     parser.add_argument('-n', '--newline', dest='newline', required=False, type=str,
                         choices=['unix', 'dos'], default='unix',
                         help='Newline type (unix, dos) used in output file.')
@@ -251,13 +290,17 @@ def main():
     if args.newline == 'dos':
         newline = '\r\n'
 
+    if args.reg_group:
+        args.reg_peripheral_prefix = True
+
     svd2dott = SVD2Dott(primary_input,
                         additional_input,
                         args.output,
                         args.device,
                         newline,
                         args.reg_prefix,
-                        args.reg_peripheral_prefix)
+                        args.reg_peripheral_prefix,
+                        args.reg_group)
     svd2dott.generate()
 
 
