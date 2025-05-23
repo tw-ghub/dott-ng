@@ -82,8 +82,8 @@ class SVD2Dott:
                 '''))
 
             preg = f'{self._reg_prefix}{reg}'
-            f.write(tw.indent(f'self.{reg.removeprefix(f'{periph}_')} = '
-                              f'{preg}({hex(addr)}, dev){self._newline}', ' '*8))
+            reg_stripped: str = reg.removeprefix(f'{periph}_')
+            f.write(tw.indent(f'self.{reg_stripped} = {preg}({hex(addr)}, dev){self._newline}', ' '*8))
 
         f.write(tw.dedent(f'''
             class {self._device_name}Registers(DeviceRegsDott):
