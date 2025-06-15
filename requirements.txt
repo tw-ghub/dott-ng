@@ -5,15 +5,17 @@
 # work on DOTT itself (i.e., add new features, fix bugs, ...)
 dott-ng-runtime>=1.1.2,==2.13.*
 pygdbmi==0.11.0.0
-pylink-square==0.11.1
+pylink-square>=1.0,<2.0
 pytest
 lxml
 
 # more recommendations than actual requirements below this line
-pyOCD
 pytest-cov
 pytest-instafail
 pytest-repeat
+
+# requirements to be removed in a coming release
 pyserial
+pyOCD
 pigpio
 matplotlib
