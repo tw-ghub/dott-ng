@@ -462,7 +462,7 @@ shared_url = "https://github.com/tw-ghub/dott-ng"
 shared_install_requires = [
                        "dott-ng-runtime>=1.1.2,==2.13.*",
                        "pygdbmi==0.11.0.0",
-                       "pylink-square==0.11.1",
+                       "pylink-square>=1.0,<2.0",
                        "psutil>=6.0.0",
                        "pytest",
                        "pytest-cov",
