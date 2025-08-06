@@ -289,7 +289,7 @@ class Target(NotifySubscriber):
         ret_val = cast_str(res)
 
         if '<optimized out>' in str(ret_val):
-            log.wadning(f'Accessed entity {expr} is optimized out in the target binary.')
+            log.warning(f'Accessed entity {expr} is optimized out in the target binary.')
 
         return ret_val
 
