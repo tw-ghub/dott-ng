@@ -177,12 +177,14 @@ class HaltPoint(Breakpoint):
         self._dott_target.bp_handler.add_bp(self)
 
     # allow the test thread to wait for a breakpoint event to occur
-    def wait_complete(self, timeout: float = None) -> None:
+    def wait_complete(self, timeout: float | None = None) -> None:
         try:
+            if not timeout:
+                timeout = self._dott_target.state_change_wait_secs
             self._q.get(block=True, timeout=timeout)
         except queue.Empty:
             self._dott_target.gdb_client.gdb_mi.debug_capture.dump()
-            raise TimeoutError(f'Timeout ({timeout}s) while waiting to reach halt point at {self._location}.') from None
+            raise TimeoutError(f"Timeout {timeout}s) while waiting to reach halt point at {self._location}.") from None
 
     def reached_internal(self, payload=None) -> None:
         self._hits += 1
