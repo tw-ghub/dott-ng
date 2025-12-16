@@ -138,7 +138,7 @@ class Breakpoint(ABC):
 
     def get_hits(self) -> int:
         """
-        Returns the number of this for the breakpoint.
+        Returns the number of hits for the breakpoint.
 
         Returns: The number of hits the breakpoint has seen.
         """
@@ -187,13 +187,13 @@ class HaltPoint(Breakpoint):
             raise TimeoutError(f"Timeout {timeout}s) while waiting to reach halt point at {self._location}.") from None
 
     def reached_internal(self, payload=None) -> None:
-        self._hits += 1
         try:
             self._dott_target.wait_halted(expected_reason='breakpoint-hit')
         except DottException as exc:
             log.warn('Target did not change to state halted!')
             ExceptionPropagator.propagate_exception(exc)
         try:
+            self._hits += 1
             self.reached()
         except Exception as exc:
             ExceptionPropagator.propagate_exception(exc)
@@ -201,7 +201,7 @@ class HaltPoint(Breakpoint):
         self._q.put(None, block=False)
 
     def reached(self) -> None:
-        # to be implemented by sub-class as needed
+        # to be implemented by subclass as needed
         pass
 
     def eval(self, cmd: str) -> Union[int, float, bool, str]:
@@ -342,7 +342,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
             self.exec(f'return')
 
     def reached(self) -> None:
-        # to be implemented by sub-class as needed
+        # to be implemented by subclass as needed
         pass
 
     def _signal_complete(self) -> None:
@@ -373,7 +373,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
                 msg = BpMsg.read_from_socket(self._sock)
                 if msg.get_type() != BpMsg.MSG_TYPE_HIT:
                     log.warning(f'Received breakpoint message of type {msg.get_type()} while waiting for type "HIT"')
-                self._hits += 1
+                    continue
             except ConnectionAbortedError:
                 log.warning(f'Breakpoint {self._location}: connection aborted')
                 self.delete()
@@ -394,6 +394,7 @@ class InterceptPoint(threading.Thread, Breakpoint):
 
             try:
                 self._dott_target.gdb_client.gdb_mi.context.acquire_context(self, GdbMiContext.BP_INTERCEPT)
+                self._hits += 1
                 self.reached()
             except Exception as ex:
                 ExceptionPropagator.propagate_exception(ex)
