@@ -32,7 +32,7 @@ def set_config_options():
     # machine-specific settings (selected based on hostname)
     hostname = socket.gethostname()
 
-    if hostname.lower() == 'dott':
+    if hostname.lower() in ['dott', 'dott-dev']:
         # running on Ubuntu Linux 22.04 Jenkins slave
         DottConf.set('jlink_serial', '51014146')
 

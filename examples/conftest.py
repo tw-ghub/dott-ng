@@ -43,7 +43,7 @@ def set_config_options() -> None:
     DottConf.set('jlink_script', 'test.jlinkscript')
     DottConf.set('jlink_extconf', '-log jlink_log.txt')
 
-    if hostname.lower() == 'dott':
+    if hostname.lower() in ['dott', 'dott-dev']:
         # running on JENKINS node
         DottConf.set('pigpio_addr', 'rpidott02')  # PiGPIO daemon on RaspberryPI (rpidott02)
         DottConf.set('jlink_serial', '51014146')
