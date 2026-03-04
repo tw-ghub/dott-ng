@@ -34,6 +34,11 @@ class TestExampleFunctions(object):
     # \amsTestReqs RS_0110, RS_0230, RS_0240, RS_0270
     def test_example_NoArgs(self, target_load, target_reset):
         res = dott().target.eval('example_NoArgs()')
+        my_val = 88
+        from dottmi.ui import dott_shell as ds
+        dt = dott().target
+        ds.dott_shell(**locals())
+        log.debug(my_val)
         assert(42 == res)
 
     ##

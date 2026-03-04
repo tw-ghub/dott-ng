@@ -513,6 +513,25 @@
             </register>
          </registers>
       </peripheral>
+
+      <peripheral>
+         <name>Control_Array</name>
+         <description>System Control registers as array</description>
+         <baseAddress>0xE000ED04</baseAddress>
+         <addressBlock>
+            <offset>0x0</offset>
+            <size>0xC0</size>
+            <usage>registers</usage>
+         </addressBlock>
+         <registers>
+            <register>
+                <dim>48</dim>
+                <dimIncrement>4</dimIncrement>
+                <name>SysCtrlArr[%s]</name>
+            </register>
+         </registers>
+      </peripheral>
+
       <peripheral>
          <name>Control</name>
          <description>System Control registers</description>

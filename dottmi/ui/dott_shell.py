@@ -1,4 +1,5 @@
 import fcntl
+import logging
 import multiprocessing
 import os
 import pty
@@ -10,6 +11,7 @@ import threading
 import time
 import tty
 from pathlib import Path
+from types import SimpleNamespace
 
 import setproctitle
 from IPython.terminal.embed import InteractiveShellEmbed
@@ -17,6 +19,7 @@ from PySide6.QtCore import QObject, QUrl, QThread, Signal, Slot, Qt
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QApplication, QMainWindow
+from traitlets.config import Config
 
 from dottmi.ui.ui_elements import terminal_window, dottng_banner, dottng_notice
 
@@ -202,15 +205,12 @@ def set_size(rows, cols):
     fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
 
 
-from types import SimpleNamespace
 
 def dott_shell(**kwargs):
-    import logging
-    import multiprocessing
+    global master_fd
     logging.getLogger('asyncio').setLevel(logging.WARNING)
 
     ctx = SimpleNamespace(**kwargs)
-    global master_fd
 
     multiprocessing.freeze_support()
     #    multiprocessing.set_start_method('spawn', force=True)
@@ -232,76 +232,41 @@ def dott_shell(**kwargs):
 
     # OUTPUT: Enable OPOST and ONLCR (fixes the "no output/staircase" issue)
     attrs[1] |= (termios.OPOST | termios.ONLCR)
-
     termios.tcsetattr(slave_fd, termios.TCSANOW, attrs)
 
     # Backup originals
     old_stdin = os.dup(sys.stdin.fileno())
     old_stdout = os.dup(sys.stdout.fileno())
 
+    # redirect stdio to slave process
     os.dup2(slave_fd, sys.stdin.fileno())
     os.dup2(slave_fd, sys.stdout.fileno())
     os.dup2(slave_fd, sys.stderr.fileno())
 
-    # Start relay threads
+    # start relay threads
     threading.Thread(target=pipe_to_pty, args=(parent_conn, master_fd), daemon=True).start()
     threading.Thread(target=pty_to_pipe, args=(parent_conn, master_fd), daemon=True).start()
 
-    from traitlets.config import Config
+    # iPython configuration
     cfg = Config()
-    # This is the magic flag: it tells IPython to use the
-    # sophisticated 'prompt_toolkit' even if detection is tricky.
     cfg.TerminalInteractiveShell.simple_prompt = False
-    # cfg.TerminalInteractiveShell.display_completions = 'readline'
     cfg.TerminalInteractiveShell.term_title = False
-    # cfg.IPCompleter.use_jedi = False
-    cfg.TerminalInteractiveShell.auto_match = True
+    cfg.TerminalInteractiveShell.auto_match=True
     cfg.TerminalInteractiveShell.highlight_matching_brackets = True
-
-    # SUPPRESS THE BANNER
     cfg.InteractiveShellEmbed.banner1 = ""
     cfg.InteractiveShellEmbed.banner2 = ""
-    #cfg.TerminalInteractiveShell.display_tips = False
     cfg.TerminalInteractiveShell.autosuggestions_provider = None
     cfg.TerminalIPythonApp.ignore_old_config = True
 
-    shell = None
     try:
-        # sys.stdout = pipe_writer
-        # sys.stdin = pipe_reader
-        # sys.stderr = pipe_writer
-        # c = Config()
-        # # Force the use of the terminal-based shell even if stdin/stdout are piped
-        # c.InteractiveShellApp.gui = 'terminal'
-        # c.TerminalInteractiveShell.readline_use = True
-
         os.environ["TERM"] = "xterm-256color"
-
-        # os.write(old_stdout.fileFno(), b"\r\nSTARTING 0\r\n")
-        val = 88
-        current_vars = globals().copy()
-        current_vars.update(locals())
-
-        # for var in current_vars:
-        #     print(var)
-
-        # shell = TerminalInteractiveShell.instance(config=cfg, auto_match=True, confirm_exit=True, highlight_matching_brackets=True)
-        shell = InteractiveShellEmbed(config=cfg, auto_match=True, highlight_matching_brackets=True)
+        shell = InteractiveShellEmbed(config=cfg)
+        # disable iPython tips
         shell.enable_tip = False
-        shell.user_ns.update(current_vars)
-        # os.write(old_stdout, b"\r\nSTARTING\r\n")
-
         try:
-            c = Config()
-            # c.TerminalInteractiveShell.simple_prompt = False  # Force rich UI
-            # c.IPCompleter.use_jedi = False
-            # IPython.embed(config=c)
-            # shell.mainloop()
             shell()
-            # start_shell()
         except SystemExit:
             pass
-        # os.write(old_stdout, b"\r\nDONE\r\n")
     except Exception as ex:
         pass
     finally:
@@ -310,16 +275,6 @@ def dott_shell(**kwargs):
         os.dup2(old_stdout, sys.stdout.fileno())
         os.dup2(old_stdout, sys.stderr.fileno())
 
-        # for var in shell.user_ns:
-        #     print(var)
-
-        print(f"val is now {val}")
-        # Use os.write to ensure output goes to the original terminal,
-        # as sys.stdout might still be in a weird state
-        # os.write(old_stdout.fileno(), b"\r\nback out of the shell\r\n")
         proc.kill()
         proc.join()
 
-
-# if __name__ == "__main__":
-#     dott_shell()

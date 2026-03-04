@@ -139,10 +139,23 @@ class SVD2Dott:
             msb_last = msb_i
             name_last = name
 
+    def _emit_register_array(self, register):
+        print(f'Register with array detecgted {self._get_node_text(register, "name")}')
+        print(f'dim: {self._get_node_text(register, "dim")}')
+        print(f'dimIncrement: {self._get_node_text(register, "dimIncrement")}')
+
     def _emit_registers(self, f: TextIO, xml_peripheral, peripheral_base_addr: int) -> None:
         peripheral_name: str = self._get_node_text(xml_peripheral, 'name')
         for register in xml_peripheral.xpath('./registers/register'):
             name: str = self._get_node_text(register, 'name')
+
+            try:
+                self._get_node_text(register, "dim")
+                self._emit_register_array(register)
+                continue
+            except ValueError:
+                pass
+
             if self._use_peripheral_prefix:
                 name = f'{peripheral_name}_{name}'
             try:

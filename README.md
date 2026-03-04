@@ -97,7 +97,7 @@ System testing examples can be found in the [System Testing Section][9] of the D
 ## Dependencies and Requirements
 
 __Required__
-* host OS (tested): Windows 10 (64bit), Ubuntu Linux 22.04 (64bit)
+* host OS (tested): Windows 11 (64bit), Ubuntu Linux 24.04 (64bit)
 * Python 3.10 (64bit) or newer (e.g., [[PythonBuilds][2]); See [Setup Guide][7] for details on tested versions.
 * [Segger J-Link][1] debug probe or STM32 eval board with ST-Link converted to J-Link
 * Segger [J-Link Software Pack][3]. __Notice:__ The following version should be avoided since they have known issues
@@ -107,7 +107,7 @@ __Recommended__
 * [STM32F072 Nucleo-64][5] board which is used as reference platform for the examples coming with DOTT
 
 __Optional__
-* Arm Compiler 6 to re-build the example firmware images (*)
+* Arm GNU Toolchain to re-build the example firmware images (*)
 * GNU Make + Busybox as build environment to re-build the example firmware images
 * RaspberryPi as test equipment to, e.g., provide stimuli via I2C or SPI to the system under test
 

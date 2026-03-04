@@ -270,3 +270,12 @@ class TestSvd:
         # global_data is expected to have been initialized again to deadbeef and incremented from there
         gd = dt.eval('global_data')
         assert gd > 0xdeadbeef
+
+    def test_register_array(self, target_load, target_reset):
+        """
+        Creates register access class from two SVD files which are merged. Reads out and checks the CPUID register.
+        """
+        from .regs_cortexm0 import Cortex_M0Registers
+
+        dt = dott().target
+        m0_regs = Cortex_M0Registers(dt)
