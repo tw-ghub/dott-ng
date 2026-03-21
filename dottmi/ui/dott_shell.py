@@ -79,7 +79,9 @@ class MainWindow(QMainWindow):
         js_code = f"window.term.write({repr(formatted_text)})"
         self.browser.page().runJavaScript(js_code)
 
-
+class LogWindow(MainWindow):
+    def _init_done(self):
+        pass
 
 class PipeWorker(QObject):
     """Handles the blocking pipe.recv() in a background thread."""
@@ -142,7 +144,7 @@ class DottShell:
         worker.moveToThread(thread)
         thread.start()
 
-        # start the applicaiton main loop
+        # start the application main loop
         ret_val = app.exec()
 
         # when coming out of the main loop, send an exit message to the main process
@@ -192,12 +194,10 @@ class DottShell:
                 print("General Exception")
                 break
 
-
     @staticmethod
     def _set_size(rows, cols):
         winsize = struct.pack("HHHH", rows, cols, 0, 0)
         fcntl.ioctl(DottShell._master_fd, termios.TIOCSWINSZ, winsize)
-
 
     def dott_shell(**kwargs):
         # disable unwanted log messages
@@ -271,3 +271,80 @@ class DottShell:
 
             proc.kill()
             proc.join()
+
+class DottLogWindow:
+
+    def __init__(self):
+        self._parent_conn = None
+        self._child_conn = None
+        self._master_fd = None
+        self._slave_fd = None
+        self._proc = None
+
+        # disable unwanted log messages
+        # logging.getLogger('asyncio').setLevel(logging.WARNING)
+
+        multiprocessing.freeze_support()
+        self._parent_conn, self._child_conn = multiprocessing.Pipe(duplex=True)
+        self._proc = multiprocessing.Process(target=DottLogWindow._start_gui_in_process, daemon=True, args=(self._child_conn,))
+        self._proc.start()
+        time.sleep(2)
+
+        # open pseudo terminal
+        self._master_fd, self._slave_fd = pty.openpty()
+
+        # set terminal controls
+        tty.setcbreak(self._slave_fd)
+        attrs = termios.tcgetattr(self._slave_fd)
+        attrs[3] &= ~(termios.ICANON | termios.ECHO)
+        attrs[1] |= (termios.OPOST | termios.ONLCR)
+        termios.tcsetattr(self._slave_fd, termios.TCSANOW, attrs)
+
+    @staticmethod
+    def _start_gui_in_process(conn, title: str = "DOTT.NG Log Window"):
+        """
+        Initializes and runs the PySide6 GUI application. The application is started in a separate process.
+        It uses a dedicated QTread to read from the pipe connected to the main process. This ensures that the
+        application main loop is not blocked.
+        """
+        os.environ.pop("QT_STYLE_OVERRIDE", None)
+        os.environ["QT_LOGGING_RULES"] = "qt.qpa.services=false"
+
+        # set up the application with its main window
+        app = QApplication(sys.argv)
+        app_name: str = "DOTT.NG LogWinow"
+        app.setApplicationName(app_name)
+        app.setDesktopFileName(app_name)
+        setproctitle.setproctitle(app_name)
+        window = LogWindow()
+        window.setWindowTitle(title)
+        window.resize(1900, 1040)
+        window.show()
+        window.conn = conn
+
+        # create the worker
+        worker = PipeWorker(conn)
+        window.bridge.set_pipe_writer(conn)
+
+        # run the worker in a dedicated thread
+        thread = QThread()
+        thread.started.connect(worker.start_listening)
+        worker.data_received.connect(window.write_to_terminal)
+        worker.moveToThread(thread)
+        thread.start()
+
+        # start the application main loop
+        ret_val = app.exec()
+
+        # when coming out of the main loop, send an exit message to the main process
+        # as the main process executes iPython, this effectively exits iPython
+        conn.send("exit\n".encode('utf-8'))
+        sys.exit(ret_val)
+
+
+    def write(self, msg: str) -> None:
+        self._parent_conn.send(msg.encode("utf-8"))
+
+    def write_line(self, msg: str) -> None:
+        msg = f'{msg}\n'
+        self._parent_conn.send(msg.encode("utf-8"))
