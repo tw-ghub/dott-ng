@@ -35,9 +35,6 @@ class TestExampleFunctions(object):
     def test_example_NoArgs(self, target_load, target_reset):
         res = dott().target.eval('example_NoArgs()')
         my_val = 88
-        from dottmi.ui import dott_shell as ds
-        dt = dott().target
-        ds.dott_shell(**locals())
         log.debug(my_val)
         assert(42 == res)
 
