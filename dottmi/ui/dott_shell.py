@@ -336,6 +336,11 @@ class DottLogWindow:
         # start the application main loop
         ret_val = app.exec()
 
+        # stop the worker thread
+        worker.stop()
+        thread.quit()
+        thread.wait()
+
         # when coming out of the main loop, send an exit message to the main process
         # as the main process executes iPython, this effectively exits iPython
         conn.send("exit\n".encode('utf-8'))
@@ -348,3 +353,6 @@ class DottLogWindow:
     def write_line(self, msg: str) -> None:
         msg = f'{msg}\n'
         self._parent_conn.send(msg.encode("utf-8"))
+
+    def wait_closed(self):
+        self._proc.join()
