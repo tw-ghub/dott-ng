@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
 
 class LogWindow(MainWindow):
     def _init_done(self):
-        pass
+        self.init_done = True
 
 class PipeWorker(QObject):
     """Handles the blocking pipe.recv() in a background thread."""

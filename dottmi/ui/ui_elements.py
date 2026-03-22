@@ -9,6 +9,7 @@ terminal_window = """
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>
         body { margin: 0; background: #1e1e1e; height: 100vh; overflow: hidden; }
+        body { margin: 0; background: #1e1e1e; height: 100vh; overflow: hidden; }
         #terminal { width: 100%; height: 100%; }
     </style>
 </head>
