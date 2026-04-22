@@ -557,7 +557,11 @@ def setup_dott():
         long_description="",
         long_description_content_type="text/markdown",
         url=shared_url,
-        packages=['dottmi'],
+        packages=['dottmi', 'dottmi.ui'],
+        include_package_data=True, # Tells setuptools to look at MANIFEST.in or package_data
+        package_data={
+            'dottmi.ui': ['ext/*'], # Include everything inside the ext folder
+        },
         data_files=[],  # data_files are set in bdist_wheel.run (in setup() this is too early)
         platforms=[],
         include_package_data=False,
