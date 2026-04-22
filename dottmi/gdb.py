@@ -47,6 +47,9 @@ class GdbServer(ABC):
 
     @property
     def port(self):
+        """
+        Returns the GDB server port.
+        """
         return self._port
 
     @abstractmethod
@@ -80,6 +83,8 @@ class GdbServerJLink(GdbServer):
                  speed: str = '15000', serial_number: str = None, jlink_addr: str = None, jlink_script: str = None,
                  jlink_extconf: str = None):
         super().__init__(addr, port)
+        self._swo_port: int | None = port + 1 if port is not None else None
+        self._vcom_port: int | None = port + 2 if port is not None else None
         self._srv_binary: str = gdb_svr_binary
         self._srv_process = None
         self._target_interface: str = interface
@@ -120,6 +125,10 @@ class GdbServerJLink(GdbServer):
         if self._port is not None:
             args.append('-port')
             args.append(f'{self._port}')
+            args.append('-swoport')
+            args.append(f'{self._swo_port}')
+            args.append('-telnetport')
+            args.append(f'{self._vcom_port}')
         if self._jlink_script is not None:
             args.append('-scriptfile')
             args.append(self._jlink_script)
@@ -197,6 +206,20 @@ class GdbServerJLink(GdbServer):
             except subprocess.TimeoutExpired:
                 self._srv_process.terminate()
             self._srv_process = None
+
+    @property
+    def swo_port(self):
+        """
+        Retruns the J-Link SWO port.
+        """
+        return self._swo_port
+
+    @property
+    def vcom_port(self):
+        """
+        Retruns the J-Link VCOM port.
+        """
+        return self._vcom_port
 
     def _conv_jlink_error(self, jlink_error: int) -> (int, str):
         bits_in_word = 32
@@ -362,7 +385,7 @@ class GdbClient(object):
         my_dir = os.path.dirname(os.path.realpath(__file__))
         os.environ['PYTHONPATH'] += os.pathsep + str(Path(my_dir + '/..'))
 
-    # Create DB client instance.
+    # Create GDB client instance.
     def create(self) -> None:
         # create 'GDB Machine Interface' instance and put it async mode
         self._mi_controller = GdbControllerDott([self._gdb_client_binary, "--nx", "--quiet", "--interpreter=mi3"])
