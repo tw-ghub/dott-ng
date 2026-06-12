@@ -564,7 +564,6 @@ def setup_dott():
         },
         data_files=[],  # data_files are set in bdist_wheel.run (in setup() this is too early)
         platforms=[],
-        include_package_data=False,
         classifiers=shared_classifiers,
         install_requires=shared_install_requires,
         python_requires='>=3.10',

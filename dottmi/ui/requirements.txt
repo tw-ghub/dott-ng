@@ -1,3 +1,4 @@
 pyside6
 textual
 setproctitle
+ipython

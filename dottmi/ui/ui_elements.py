@@ -19,7 +19,7 @@ terminal_window = """
         window.onload = function() {
             window.term = new Terminal({
                 cursorBlink: true,
-                theme: { background: '#10222c' },
+                theme: { background: '<BGCOLOR>' },
                 convertEol: true
             });
 

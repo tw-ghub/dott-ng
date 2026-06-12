@@ -45,12 +45,13 @@ class TerminalBridge(QObject):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, bgcolor: str = "#2b2b2b"):
         super().__init__()
         self.browser = QWebEngineView()
         self.browser.setFocusPolicy(Qt.StrongFocus)
         self.browser.setFocus()
         self.conn = None
+        self._bgcolor: str = bgcolor
 
         self.init_done = False
 
@@ -60,7 +61,7 @@ class MainWindow(QMainWindow):
         self.browser.page().setWebChannel(self.channel)
         current_dir = Path(__file__).resolve().parent
         base_url = QUrl.fromLocalFile(str(current_dir) + os.path.sep)
-        self.browser.setHtml(terminal_window, baseUrl=base_url)
+        self.browser.setHtml(terminal_window.replace("<BGCOLOR>", self._bgcolor), baseUrl=base_url)
         self.setCentralWidget(self.browser)
         self.browser.loadFinished.connect(self._init_done)
 
@@ -80,6 +81,9 @@ class MainWindow(QMainWindow):
         self.browser.page().runJavaScript(js_code)
 
 class LogWindow(MainWindow):
+    def __init__(self, bgcolor: str = "#2b2b2b"):
+        super().__init__(bgcolor)
+
     def _init_done(self):
         self.init_done = True
 
@@ -127,7 +131,7 @@ class DottShell:
         app.setApplicationName(app_name)
         app.setDesktopFileName(app_name)
         setproctitle.setproctitle(app_name)
-        window = MainWindow()
+        window = MainWindow("#10222c")
         window.setWindowTitle("DOTT.NG - Interactive Shell")
         window.resize(1900, 1040)
         window.show()
@@ -274,19 +278,20 @@ class DottShell:
 
 class DottLogWindow:
 
-    def __init__(self):
+    def __init__(self, title, bgcolor: str = "#2b2b2b"):
         self._parent_conn = None
         self._child_conn = None
         self._master_fd = None
         self._slave_fd = None
         self._proc = None
+        self._bgcolor: str = bgcolor
 
         # disable unwanted log messages
         # logging.getLogger('asyncio').setLevel(logging.WARNING)
 
         multiprocessing.freeze_support()
         self._parent_conn, self._child_conn = multiprocessing.Pipe(duplex=True)
-        self._proc = multiprocessing.Process(target=DottLogWindow._start_gui_in_process, daemon=True, args=(self._child_conn,))
+        self._proc = multiprocessing.Process(target=DottLogWindow._start_gui_in_process, daemon=True, args=(self._child_conn, title, bgcolor))
         self._proc.start()
         time.sleep(2)
 
@@ -301,7 +306,7 @@ class DottLogWindow:
         termios.tcsetattr(self._slave_fd, termios.TCSANOW, attrs)
 
     @staticmethod
-    def _start_gui_in_process(conn, title: str = "DOTT.NG Log Window"):
+    def _start_gui_in_process(conn, title: str = "DOTT.NG Log Window", bgcolor: str = "#2b2b2b"):
         """
         Initializes and runs the PySide6 GUI application. The application is started in a separate process.
         It uses a dedicated QTread to read from the pipe connected to the main process. This ensures that the
@@ -312,11 +317,11 @@ class DottLogWindow:
 
         # set up the application with its main window
         app = QApplication(sys.argv)
-        app_name: str = "DOTT.NG LogWinow"
+        app_name: str = "DOTT.NG Log Window"
         app.setApplicationName(app_name)
         app.setDesktopFileName(app_name)
         setproctitle.setproctitle(app_name)
-        window = LogWindow()
+        window = LogWindow(bgcolor)
         window.setWindowTitle(title)
         window.resize(1900, 1040)
         window.show()
