@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2024 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2026 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,11 +20,7 @@ import os
 import struct
 
 
-class BpSharedConf():
-    # server-side port of TCP connection between MI and GDB process
-    GDB_CMD_SERVER_PORT = 20080
-
-class BpMsg():
+class BpMsg:
     # header magic number
     MSG_HDR_MAGIC = b'\xd0\x11'
 

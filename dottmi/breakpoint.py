@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 from dottmi.dott import dott
 from dottmi.dottexceptions import DottException
 from dottmi.gdb_mi import GdbMiContext
-from dottmi.gdb_shared import BpMsg, BpSharedConf
+from dottmi.gdb_shared import BpMsg
 from dottmi.utils import log, cast_str, ExceptionPropagator
 
 
@@ -298,11 +298,14 @@ class InterceptPoint(threading.Thread, Breakpoint):
         # open server socket for incoming connection from custom GDB command
         srv_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         srv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        srv_sock.bind(('127.0.0.1', BpSharedConf.GDB_CMD_SERVER_PORT))
+
+        # bind a local port; let system determine a free one and then retrieve it via getsockname
+        srv_sock.bind(('127.0.0.1', 0))
+        srv_port = srv_sock.getsockname()[1]
         srv_sock.listen(1)
 
         # call custom GDB command
-        self._dott_target.cli_exec(f'dott-bp-nostop-tcp {self._location}')
+        self._dott_target.cli_exec_data(f'dott-bp-nostop-tcp {self._location} {srv_port}')
 
         self._sock, addr = srv_sock.accept()
         self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)

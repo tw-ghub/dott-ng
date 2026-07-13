@@ -1,7 +1,7 @@
 # vim: set tabstop=4 expandtab :
 ###############################################################################
 #   Copyright (c) 2019-2021 ams AG
-#   Copyright (c) 2022-2025 Thomas Winkler <thomas.winkler@gmail.com>
+#   Copyright (c) 2022-2026 Thomas Winkler <thomas.winkler@gmail.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import json
 
 import gdb
 
-from dottmi.gdb_shared import BpMsg, BpSharedConf
+from dottmi.gdb_shared import BpMsg
 
 # global variable with all no-stop breakpoints
 no_stop_bps = []
@@ -149,18 +149,28 @@ class DottCmdInterceptPoint(gdb.Command):
                 return stop_inferior
 
         try:
+            # get local port number and breakpoint location from command arguments
+            args = gdb.string_to_argv(arg)
+            location: str = args[0]
+            port: int = int(args[1])
+
             # connect to server socket (in MI process)
             import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(('127.0.0.1', BpSharedConf.GDB_CMD_SERVER_PORT))
+            sock.connect(('127.0.0.1', port))
 
             # create breakpoint and add it to the list
-            bp = InterceptPoint(arg, sock)
+            bp = InterceptPoint(location, sock)
             global no_stop_bps
             no_stop_bps.append(bp)
 
+            print(f'InterceptPoint created at location: {location} (local port: {port})')
+
         except Exception as ex:
             print(str(ex))
+            msg = f'This exception occurred in GDB command context while creating an InterceptPoint ' \
+                  f'at location "{location}" with local port {port}.\n{str(ex.__traceback__)}'
+            raise RuntimeError(msg) from ex
 
 
 # ----------------------------------------------------------------------------------------------------------------------
