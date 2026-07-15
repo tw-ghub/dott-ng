@@ -151,8 +151,9 @@ class DottCmdInterceptPoint(gdb.Command):
         try:
             # get local port number and breakpoint location from command arguments
             args = gdb.string_to_argv(arg)
-            location: str = args[0]
-            port: int = int(args[1])
+            # Note: location might contain whitespaces. Hence, we take the last item as port and all parts before as location.
+            location: str = ' '.join(args[:-1])
+            port: int = int(args[-1])
 
             # connect to server socket (in MI process)
             import socket
