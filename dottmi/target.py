@@ -92,8 +92,15 @@ class Target(NotifySubscriber):
         # delay after device startup / continue
         self._startup_delay: float = 0.0
 
-        # timeout used when connection to remote GDB server ("target remote")
+        # timeout used when connection to remote GDB server ("target remote"), timeout is in s
         self._connect_timeout: float = float(dconf.get(DottConf.keys.gdb_server_connect_timeout))
+        # GDB Target Connection Mode
+        # - target remote disconnects from the target, and gdbserver typically exits
+        # - target extended-remote keeps the connection alive, to restart, reattach, issue monitor commands
+        if dconf.get(DottConf.keys.gdb_target_select) in ['remote', 'extended-remote']:
+            self._gdb_target_select = dconf.get(DottConf.keys.gdb_target_select)
+        else:
+            self._gdb_target_select = 'remote'
 
         # flag which indicates if gdb client is attached to target
         self._gdb_client_is_connected = False
@@ -115,7 +122,7 @@ class Target(NotifySubscriber):
             DottHooks.exec_gdb_pre_connect_hook(self)
 
             self.exec('-gdb-set mi-async on', timeout=5)
-            self.exec(f'-target-select remote {self._gdb_server.addr}:{self._gdb_server.port}', self._connect_timeout)
+            self.exec(f'-target-select {self._gdb_target_select} {self._gdb_server.addr}:{self._gdb_server.port}', self._connect_timeout)
             self.cli_exec('set mem inaccessible-by-default off', timeout=1)
         except Exception as ex:
             raise ex

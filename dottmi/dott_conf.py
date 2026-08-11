@@ -467,6 +467,10 @@ class DottConf(object):
         gdb_server_port: str = 'gdb_server_port'
         gdb_server_binary: str = 'gdb_server_binary'
         gdb_server_connect_timeout: str = 'gdb_server_connect_timeout'
+        # GDB Target Connection Mode
+        # - target remote disconnects from the target, and gdbserver typically exits
+        # - target extended-remote keeps the connection alive, to restart, reattach, issue monitor commands
+        gdb_target_select: str = 'gdb_target_select' # Options: remote, extended-remote
 
         # Debug monitor variants
         monitor_type: str = 'monitor_type'
